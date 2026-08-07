@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "scisynth"
 version = "0.1.0"
+description = "Domain-agnostic synthetic scientific data generator"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
