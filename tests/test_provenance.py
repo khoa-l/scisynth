@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from scisynth import Independent, ObservedData, Provenance, observe
-from scisynth.observed.operators import GaussianNoise, UniformSubsample
+from scisynth import ObservedData, Provenance, observe
+from scisynth.latent import Independent
+from scisynth.observed import GaussianNoise, UniformSubsample
 
 
 @pytest.fixture

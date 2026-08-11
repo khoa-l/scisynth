@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.stats import norm, poisson, randint
 
-from scisynth import Tabular, generate
+from scisynth import generate
+from scisynth.latent import Tabular
 
 COLUMNS = [norm(0, 1), poisson(mu=5), randint(0, 4)]
 

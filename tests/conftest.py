@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from scisynth import Independent
-from scisynth.observed.operators.base import ObservationState
+from scisynth.latent import Independent
+from scisynth.observed import ObservationState
 
 
 @pytest.fixture

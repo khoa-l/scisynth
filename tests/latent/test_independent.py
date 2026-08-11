@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from scisynth import Independent, Spec, generate
+from scisynth import Spec, generate
+from scisynth.latent import Independent
 
 
 def test_basic_shape():
