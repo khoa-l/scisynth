@@ -14,27 +14,24 @@ def test_basic_shape():
 
 
 def test_reproducible():
-    dist = Tabular(columns=COLUMNS)
-    d1 = dist.rvs(n=50, seed=42)
-    d2 = dist.rvs(n=50, seed=42)
+    d1 = Tabular(columns=COLUMNS).rvs(n=50, seed=42)
+    d2 = Tabular(columns=COLUMNS).rvs(n=50, seed=42)
     np.testing.assert_array_equal(d1.X, d2.X)
 
 
 def test_different_seeds_differ():
-    dist = Tabular(columns=COLUMNS)
-    d1 = dist.rvs(n=50, seed=0)
-    d2 = dist.rvs(n=50, seed=1)
+    d1 = Tabular(columns=COLUMNS).rvs(n=50, seed=0)
+    d2 = Tabular(columns=COLUMNS).rvs(n=50, seed=1)
     assert not np.array_equal(d1.X, d2.X)
 
 
 def test_marginals_respected():
-    # Poisson samples should be non-negative integers
     data = Tabular(columns=COLUMNS).rvs(n=1000, seed=0)
+
     poisson_col = data.X[:, 1]
     assert np.all(poisson_col >= 0)
     assert np.all(poisson_col == np.floor(poisson_col))
 
-    # randint(0, 4) samples should be in {0, 1, 2, 3}
     cat_col = data.X[:, 2]
     assert set(cat_col.astype(int)).issubset({0, 1, 2, 3})
 
@@ -46,7 +43,7 @@ def test_correlated_columns():
     assert abs(empirical - 0.9) < 0.05
 
 
-def test_uncorrelated_columns_independent():
+def test_zero_correlation():
     corr = [[1.0, 0.0], [0.0, 1.0]]
     data = Tabular(columns=[norm(0, 1), norm(0, 1)], corr=corr).rvs(n=2000, seed=0)
     empirical = np.corrcoef(data.X[:, 0], data.X[:, 1])[0, 1]
@@ -54,8 +51,7 @@ def test_uncorrelated_columns_independent():
 
 
 def test_spec_roundtrip():
-    dist = Tabular(columns=COLUMNS)
-    spec = dist.to_spec()
+    spec = Tabular(columns=COLUMNS).to_spec()
     data = generate(spec)
     assert data.X.shape == (1000, 3)
     assert data.family == "tabular"
@@ -64,5 +60,5 @@ def test_spec_roundtrip():
 def test_to_frame():
     data = Tabular(columns=COLUMNS).rvs(n=10, seed=0)
     df = data.to_frame()
-    assert df.shape == (10, 4)  # id + 3 feature columns
+    assert df.shape == (10, 4)  # id + 3 features
     assert df.columns[0] == "id"
