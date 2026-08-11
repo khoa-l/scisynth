@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+import polars as pl
 
 from scisynth.spec import Spec
 
@@ -16,6 +17,11 @@ class LatentData:
     ids: np.ndarray  # (n,) int64, opaque row identifiers
     family: str
     params: dict[str, Any] = field(default_factory=dict)
+
+    def to_frame(self) -> pl.DataFrame:
+        p = self.X.shape[1]
+        df = pl.DataFrame(self.X, schema=[f"x{i}" for i in range(p)])
+        return df.with_columns(pl.Series("id", self.ids)).select(["id", *df.columns])
 
 
 FamilyFn = Callable[..., LatentData]
