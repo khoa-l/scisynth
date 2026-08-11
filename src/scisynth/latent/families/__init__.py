@@ -1,1 +1,1 @@
-from scisynth.latent.families import independent
+from scisynth.latent.families.independent import Independent

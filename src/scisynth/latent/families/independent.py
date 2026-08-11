@@ -1,16 +1,54 @@
-"""independent_features: independent/correlated tabular features. d == p."""
-
 from __future__ import annotations
 
 from typing import Any
 
 import numpy as np
 
-from scisynth.latent.base import LatentData, register_family
+from scisynth.latent.base import LatentData, LatentDistribution, register_family
+from scisynth.spec import Spec
+
+
+class Independent(LatentDistribution):
+    def __init__(
+        self,
+        p: int = 5,
+        loc: float | list[float] = 0.0,
+        scale: float = 1.0,
+        correlated: bool = False,
+        cov: list[list[float]] | None = None,
+    ) -> None:
+        self.p = p
+        self.loc = loc
+        self.scale = scale
+        self.correlated = correlated
+        self.cov = cov
+
+    def rvs(self, n: int = 1000, seed: int = 0) -> LatentData:
+        return _generate(
+            n=n,
+            seed=seed,
+            p=self.p,
+            loc=self.loc,
+            scale=self.scale,
+            correlated=self.correlated,
+            cov=self.cov,
+        )
+
+    def to_spec(self) -> Spec:
+        return Spec(
+            family="independent_features",
+            params={
+                "p": self.p,
+                "loc": self.loc,
+                "scale": self.scale,
+                "correlated": self.correlated,
+                "cov": self.cov,
+            },
+        )
 
 
 @register_family("independent_features")
-def generate(
+def _generate(
     n: int,
     seed: int,
     p: int = 5,

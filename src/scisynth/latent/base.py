@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -22,6 +23,14 @@ class LatentData:
         p = self.X.shape[1]
         df = pl.DataFrame(self.X, schema=[f"x{i}" for i in range(p)])
         return df.with_columns(pl.Series("id", self.ids)).select(["id", *df.columns])
+
+
+class LatentDistribution(ABC):
+    @abstractmethod
+    def rvs(self, n: int = 1000, seed: int = 0) -> LatentData: ...
+
+    @abstractmethod
+    def to_spec(self) -> Spec: ...
 
 
 FamilyFn = Callable[..., LatentData]

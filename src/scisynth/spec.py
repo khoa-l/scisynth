@@ -21,7 +21,7 @@ class ProjectionSpec:
 @dataclass
 class Spec:
     family: str
-    family_params: dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     n: int = 1000
     seed: int = 0
     operators: list[OperatorSpec] = field(default_factory=list)
@@ -31,7 +31,7 @@ class Spec:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Spec":
+    def from_dict(cls, d: dict[str, Any]) -> Spec:
         d = dict(d)
         d["operators"] = [OperatorSpec(**o) for o in d.get("operators", [])]
         proj = d.get("projection")
@@ -42,7 +42,7 @@ class Spec:
         return json.dumps(self.to_dict(), sort_keys=True)
 
     @classmethod
-    def from_json(cls, s: str) -> "Spec":
+    def from_json(cls, s: str) -> Spec:
         return cls.from_dict(json.loads(s))
 
     @property
