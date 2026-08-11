@@ -30,7 +30,7 @@ def register_family(name: str) -> Callable[[FamilyFn], FamilyFn]:
     return deco
 
 
-def generate_latent(spec: Spec) -> LatentData:
+def generate(spec: Spec) -> LatentData:
     if spec.family not in FAMILY_REGISTRY:
         known = ", ".join(sorted(FAMILY_REGISTRY)) or "(none registered)"
         raise KeyError(
