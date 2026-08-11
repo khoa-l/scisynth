@@ -8,6 +8,8 @@ from scisynth.latent.base import LatentData, LatentDistribution, register_family
 from scisynth.spec import Spec
 
 
+# Right now Independent is continuous and Gaussian only
+# see Tabular for mixed and categorical datasets
 class Independent(LatentDistribution):
     def __init__(
         self,

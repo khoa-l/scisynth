@@ -5,13 +5,14 @@ from scisynth.latent.base import (
     generate,
     register_family,
 )
-from scisynth.latent.families import Independent
+from scisynth.latent.families import Independent, Tabular
 
 __all__ = [
     "FAMILY_REGISTRY",
     "Independent",
     "LatentData",
     "LatentDistribution",
+    "Tabular",
     "generate",
     "register_family",
 ]
