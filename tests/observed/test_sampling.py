@@ -47,9 +47,6 @@ class TestUniformSubsample:
             UniformSubsample()
 
 
-# --- SparseSubsample ---
-
-
 class TestSparseSubsample:
     def test_shape(self, state, rng):
         out = SparseSubsample(n=100).apply(state, rng)
@@ -117,9 +114,6 @@ class TestBoundingBoxSubsample:
             state, rng
         )
         assert ids_are_subset(out, state)
-
-
-# --- RadiusSubsample ---
 
 
 class TestRadiusSubsample:
