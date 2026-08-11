@@ -13,16 +13,20 @@ from scisynth.spec import Spec
 
 @dataclass
 class LatentData:
-    Z: np.ndarray  # (n, d) intrinsic coordinates
-    X: np.ndarray  # (n, p) clean ambient realization, ground truth for O
-    ids: np.ndarray  # (n,) int64, opaque row identifiers
+    Z: np.ndarray  # (n, d) intrinsic
+    X: np.ndarray  # (n, p) ambient
+    ids: np.ndarray  # (n,) row identifiers
     family: str
     params: dict[str, Any] = field(default_factory=dict)
+    coords: dict[str, np.ndarray] = field(default_factory=dict)  # e.g. "time", "x", "y"
 
     def to_frame(self) -> pl.DataFrame:
         p = self.X.shape[1]
         df = pl.DataFrame(self.X, schema=[f"x{i}" for i in range(p)])
-        return df.with_columns(pl.Series("id", self.ids)).select(["id", *df.columns])
+        coord_cols = {k: pl.Series(k, v) for k, v in self.coords.items()}
+        return df.with_columns(pl.Series("id", self.ids), **coord_cols).select(
+            ["id", *self.coords.keys(), *df.columns]
+        )
 
 
 class LatentDistribution(ABC):
