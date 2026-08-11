@@ -52,4 +52,4 @@ def generate(spec: Spec) -> LatentData:
             f"Unknown latent family '{spec.family}'. Known families: {known}"
         )
     fn = FAMILY_REGISTRY[spec.family]
-    return fn(n=spec.n, seed=spec.seed, **spec.family_params)
+    return fn(n=spec.n, seed=spec.seed, **spec.params)
