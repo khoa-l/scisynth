@@ -25,6 +25,7 @@ def observe(
         state = op.apply(state, rng)
         steps.append(
             ProvenanceStep(
+                layer="observed",
                 operator=op.to_spec(),
                 ids=state.ids.copy(),
                 X=state.X.copy(),

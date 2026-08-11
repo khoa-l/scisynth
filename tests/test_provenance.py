@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from scisynth import ObservedData, Provenance, observe
+from scisynth import observe
 from scisynth.latent import Independent
 from scisynth.observed import GaussianNoise, UniformSubsample
 
@@ -23,7 +23,9 @@ class TestObservedData:
         assert not hasattr(observed, "latent")
 
     def test_stores_operator_specs(self, latent):
-        observed, _ = observe(latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)])
+        observed, _ = observe(
+            latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)]
+        )
         assert len(observed.operators) == 2
         assert observed.operators[0].name == "uniform_subsample"
         assert observed.operators[1].name == "gaussian_noise"
@@ -65,6 +67,10 @@ class TestProvenance:
         _, prov = observe(latent, [])
         np.testing.assert_array_equal(prov.ids, latent.ids)
 
+    def test_step_layer_is_observed(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        assert prov.observed_steps[0].layer == "observed"
+
     def test_step_x_shape(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)])
         assert prov.observed_steps[0].X.shape == (80, 3)
@@ -77,38 +83,100 @@ class TestProvenance:
         )
         assert not np.allclose(prov.observed_steps[0].X, prov.observed_steps[1].X)
 
-    def test_state_after(self, latent):
-        _, prov = observe(latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)])
-        X, ids = prov.state_after(0)
-        assert X.shape == (80, 3)
-        assert ids.shape == (80,)
-
     def test_projected_steps_initially_empty(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80)])
         assert prov.projected_steps == []
 
 
-class TestProvenanceMatrix:
-    def test_latent_to_observed_shape(self, latent):
+class TestProvenanceStep:
+    def test_to_frame_shape(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80)])
-        W = prov.latent_to_observed()
-        assert W.shape == (80, 200)
+        df = prov.observed_steps[0].to_frame()
+        assert df.shape == (80, 4)  # id + 3 features
 
-    def test_each_observed_row_maps_to_one_latent(self, latent):
+    def test_to_frame_observed_columns(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80)])
-        W = prov.latent_to_observed()
-        row_sums = np.asarray(W.sum(axis=1)).ravel()
-        np.testing.assert_allclose(row_sums, 1.0)
+        df = prov.observed_steps[0].to_frame()
+        assert df.columns[0] == "id"
+        assert df.columns[1] == "x0"
 
-    def test_coverage_sums_to_observed_count(self, latent):
+    def test_to_frame_ids_match(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80)])
-        assert prov.coverage().sum() == 80
+        df = prov.observed_steps[0].to_frame()
+        np.testing.assert_array_equal(df["id"].to_numpy(), prov.observed_steps[0].ids)
 
-    def test_coverage_shape(self, latent):
-        _, prov = observe(latent, [UniformSubsample(n=80)])
-        assert prov.coverage().shape == (200,)
 
-    def test_unobserved_latent_points_have_zero_coverage(self, latent):
+class TestProvenanceToFrame:
+    def test_columns(self, latent):
         _, prov = observe(latent, [UniformSubsample(n=80)])
-        cov = prov.coverage()
-        assert (cov == 0).sum() == 120  # 200 - 80 not observed
+        df = prov.to_frame()
+        assert set(df.columns) == {"layer", "step", "operator", "n_in", "n_out"}
+
+    def test_row_count(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)])
+        df = prov.to_frame()
+        assert len(df) == 3  # 1 latent + 2 observed steps
+
+    def test_n_out_matches_n_in_next_row(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80), GaussianNoise(sigma=0.1)])
+        df = prov.to_frame()
+        assert df["n_out"][0] == df["n_in"][1]
+        assert df["n_out"][1] == df["n_in"][2]
+
+    def test_no_observed_steps(self, latent):
+        _, prov = observe(latent, [])
+        df = prov.to_frame()
+        assert len(df) == 1
+        assert df["layer"][0] == "latent"
+
+
+class TestMappingFrame:
+    def test_lo_shape(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        df = prov.mapping_frame()
+        assert df.shape == (80, 3)  # observed_idx, latent_id, coverage
+
+    def test_lo_columns(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        df = prov.mapping_frame()
+        assert df.columns == ["latent_id", "observed_idx", "coverage"]
+
+    def test_observed_idx_is_sequential(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        df = prov.mapping_frame()
+        np.testing.assert_array_equal(df["observed_idx"].to_numpy(), np.arange(80))
+
+    def test_latent_ids_are_subset_of_source(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        df = prov.mapping_frame()
+        assert set(df["latent_id"].to_list()).issubset(set(latent.ids.tolist()))
+
+    def test_coverage_is_one_for_bijective(self, latent):
+        _, prov = observe(latent, [UniformSubsample(n=80)])
+        df = prov.mapping_frame()
+        assert (df["coverage"] == 1).all()
+
+    def test_lop_adds_projected_idx_column(self, latent):
+        from scisynth import project
+
+        class _DR:
+            def fit_transform(self, X):
+                return X[:, :2]
+
+        observed, prov = observe(latent, [UniformSubsample(n=80)])
+        _, prov = project(observed, _DR(), provenance=prov)
+        df = prov.mapping_frame()
+        assert "projected_idx" in df.columns
+        assert df.shape == (80, 4)
+
+    def test_projected_idx_is_sequential(self, latent):
+        from scisynth import project
+
+        class _DR:
+            def fit_transform(self, X):
+                return X[:, :2]
+
+        observed, prov = observe(latent, [UniformSubsample(n=80)])
+        _, prov = project(observed, _DR(), provenance=prov)
+        df = prov.mapping_frame()
+        np.testing.assert_array_equal(df["projected_idx"].to_numpy(), np.arange(80))

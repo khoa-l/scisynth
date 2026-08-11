@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
-import scipy.sparse
+import polars as pl
 
 if TYPE_CHECKING:
     from scisynth.latent.base import LatentData
@@ -13,9 +13,16 @@ if TYPE_CHECKING:
 
 @dataclass
 class ProvenanceStep:
+    layer: str  # "observed" or "projected"
     operator: OperatorSpec
-    ids: np.ndarray  # which latent rows remain after this step
-    X: np.ndarray  # data state after this operator was applied
+    ids: np.ndarray  # row indices into the previous layer's data
+    X: np.ndarray  # data state after this step
+
+    def to_frame(self) -> pl.DataFrame:
+        prefix = "z" if self.layer == "projected" else "x"
+        p = self.X.shape[1]
+        df = pl.DataFrame(self.X, schema=[f"{prefix}{i}" for i in range(p)])
+        return df.with_columns(pl.Series("id", self.ids)).select(["id", *df.columns])
 
 
 @dataclass
@@ -26,29 +33,72 @@ class Provenance:
 
     @property
     def ids(self) -> np.ndarray:
-        """Final observed ids (latent row indices) after all operators."""
         if self.observed_steps:
             return self.observed_steps[-1].ids
         return self.source.ids
 
-    def state_after(self, step: int) -> tuple[np.ndarray, np.ndarray]:
-        """(X, ids) after the nth observed operator (0-indexed)."""
-        s = self.observed_steps[step]
-        return s.X, s.ids
+    def to_frame(self) -> pl.DataFrame:
+        rows: list[dict] = []
+        n_in = len(self.source.ids)
+        rows.append(
+            {
+                "layer": "latent",
+                "step": -1,
+                "operator": self.source.family,
+                "n_in": n_in,
+                "n_out": n_in,
+            }
+        )
+        for i, step in enumerate(self.observed_steps):
+            n_out = len(step.ids)
+            rows.append(
+                {
+                    "layer": "observed",
+                    "step": i,
+                    "operator": step.operator.name,
+                    "n_in": n_in,
+                    "n_out": n_out,
+                }
+            )
+            n_in = n_out
+        for i, step in enumerate(self.projected_steps):
+            n_out = len(step.ids)
+            rows.append(
+                {
+                    "layer": "projected",
+                    "step": i,
+                    "operator": step.operator.name,
+                    "n_in": n_in,
+                    "n_out": n_out,
+                }
+            )
+            n_in = n_out
+        return pl.DataFrame(
+            rows,
+            schema={
+                "layer": pl.String,
+                "step": pl.Int32,
+                "operator": pl.String,
+                "n_in": pl.Int64,
+                "n_out": pl.Int64,
+            },
+        )
 
-    def latent_to_observed(self) -> scipy.sparse.csr_matrix:
-        """Sparse (m, n) matrix: W[i, j] = weight of observed row i from latent row j."""
-        final_ids = self.ids
-        m = len(final_ids)
-        n = len(self.source.ids)
-        data = np.ones(m, dtype=np.float32)
-        row = np.arange(m)
-        col = final_ids
-        return scipy.sparse.csr_matrix((data, (row, col)), shape=(m, n))
-
-    def coverage(self) -> np.ndarray:
-        """Number of times each latent point was observed. Shape (n,)."""
+    def mapping_frame(self) -> pl.DataFrame:
+        m = len(self.ids)
         n = len(self.source.ids)
         counts = np.zeros(n, dtype=np.int64)
         np.add.at(counts, self.ids, 1)
-        return counts
+
+        data: dict = {
+            "latent_id": self.ids,
+            "observed_idx": np.arange(m, dtype=np.int64),
+            "coverage": counts[self.ids],
+        }
+
+        if self.projected_steps:
+            # Projection is currently bijective and order-preserving:
+            # observed row i → projected row i.
+            data["projected_idx"] = np.arange(m, dtype=np.int64)
+
+        return pl.DataFrame(data)
