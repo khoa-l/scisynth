@@ -44,7 +44,7 @@ class Tabular(LatentDistribution):
 # Might be a good idea to use the Synthetic Data Vault in the future?
 # Found out about it while figuring out how to do this, lol
 #
-# Supports mixed continuse / categorical data
+# Supports mixed continuous / categorical data
 @register_family("tabular")
 def _generate(
     n: int,
@@ -99,5 +99,5 @@ def _generate(
         "seed": seed,
     }
 
-    # No hidden structure — intrinsic space equals ambient space (d == p).
+    # No hidden structure so the intrinsic space equals ambient space (d == p).
     return LatentData(Z=X.copy(), X=X, ids=ids, family="tabular", params=params)

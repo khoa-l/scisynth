@@ -51,6 +51,7 @@ class UniformSubsample(Operator):
         return ObservationState(X=state.X[idx], ids=state.ids[idx])
 
 
+# Data dependent sample bias
 @register_operator
 class SparseSubsample(Operator):
     # Preferentially keeps rows from sparse / underrepresented regions.
@@ -128,6 +129,8 @@ class BoundingBoxSubsample(Operator):
         return ObservationState(X=state.X[idx], ids=state.ids[idx])
 
 
+# Abstract the perturbations / duplications in regular ways
+# Single vs. area multisample
 @register_operator
 class RadiusSubsample(Operator):
     # Keeps rows within range of one or more center points (union).
@@ -202,7 +205,7 @@ class StratifiedSubsample(Operator):
             whitened,
             k=self.params["n_strata"],
             minit="points",
-            seed=int(rng.integers(0, 2**31)),
+            rng=int(rng.integers(0, 2**31)),
         )
         idx = []
         for stratum in range(self.params["n_strata"]):
