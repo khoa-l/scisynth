@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import (
     GaussianNoise,
@@ -11,7 +14,7 @@ from scisynth import (
 from scisynth.testing.invariants import check_observation
 
 
-def obs(values: np.ndarray, mask: np.ndarray | None = None) -> Observation:
+def obs(values: NDArray[Any], mask: NDArray[Any] | None = None) -> Observation:
     mask = np.ones(values.shape, bool) if mask is None else mask
     v = np.where(mask, values, np.nan)
     v = v[:, None]  # one channel

@@ -8,13 +8,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    env:
+      # Setting it keeps `uv sync` and `uv run` on the same
+      # interpreter. Otherwise `uv run` follows .python-version, which
+      # can differ, and rebuilds the environment without the dev tools.
+      UV_PYTHON: "3.14"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --extra dev --extra viz --python ${{ matrix.python-version }}
+      - run: uv sync --extra dev --extra viz
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy

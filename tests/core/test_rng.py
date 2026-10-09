@@ -1,10 +1,13 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import spawn_rngs
 
 
-def draws(gen: np.random.Generator) -> np.ndarray:
+def draws(gen: np.random.Generator) -> NDArray[Any]:
     return gen.random(4)
 
 

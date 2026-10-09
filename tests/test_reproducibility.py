@@ -1,4 +1,7 @@
+from typing import Any
+
 import numpy as np
+from numpy.typing import NDArray
 from scipy import stats
 
 from scisynth import (
@@ -54,7 +57,7 @@ def test_stage_randomness_is_independent_of_other_stages_outcomes(
 ) -> None:
     """Noise on entries that survive dropout is the same whatever the dropout rate."""
 
-    def residual(p: float) -> np.ndarray:
+    def residual(p: float) -> NDArray[Any]:
         o = Observer(GridSampler((20, 20)), [RandomDropout(p), GaussianNoise(0.3)])
         out = o.run(field, seed=8)
         assert out.truth is not None

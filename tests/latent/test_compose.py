@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import AnalyticField, Domain, GaussianField, Product, Sum
 from scisynth.latent.compose import Multichannel
@@ -59,7 +62,7 @@ def test_multichannel_stacks_channels_in_order(domain: Domain) -> None:
     assert Multichannel(a).evaluate(pts).shape == (2, 1)
 
 
-def _corr(values: np.ndarray) -> float:
+def _corr(values: NDArray[Any]) -> float:
     return float(np.asarray(np.corrcoef(values.T))[0, 1])
 
 

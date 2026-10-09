@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import (
     AnalyticField,
@@ -19,7 +22,9 @@ from scisynth.testing.invariants import (
 
 def grid_obs(shape: tuple[int, ...] = (3, 4), d: int = 2) -> Observation:
     values = np.arange(np.prod(shape) * d, dtype=float).reshape(*shape, d)
-    coords = {f"a{i}": np.arange(n, dtype=float) for i, n in enumerate(shape)}
+    coords: dict[str, NDArray[Any]] = {
+        f"a{i}": np.arange(n, dtype=float) for i, n in enumerate(shape)
+    }
     return Observation(values, coords, np.ones(shape, bool))
 
 

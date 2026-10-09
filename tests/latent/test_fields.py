@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from scipy import stats
 
 from scisynth import AnalyticField, Domain, GaussianField, InterpolatedField
@@ -72,7 +75,7 @@ def line_domain() -> Domain:
     return Domain.from_extents([(0.0, 1.0)])
 
 
-def fine_points(n: int = 1600) -> np.ndarray:
+def fine_points(n: int = 1600) -> NDArray[Any]:
     return np.linspace(0.0, 1.0, n, endpoint=False)[:, None]
 
 

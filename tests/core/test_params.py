@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy import stats
 
 from scisynth import resolve
@@ -37,8 +38,15 @@ def test_duck_typed_rvs() -> None:
     assert resolve(Custom(), rng()) == float(rng().integers(100))
 
 
+def global_state() -> NDArray[Any]:
+    """Return the key array of numpy's legacy global generator."""
+    state: Any = np.random.get_state()  # noqa: NPY002
+    key: NDArray[Any] = state[1].copy()
+    return key
+
+
 def test_does_not_touch_global_state() -> None:
     np.random.seed(123)  # noqa: NPY002
-    before = np.random.get_state()[1].copy()  # noqa: NPY002
+    before = global_state()
     resolve(stats.norm(), rng())
-    assert np.array_equal(before, np.random.get_state()[1])  # noqa: NPY002
+    assert np.array_equal(before, global_state())

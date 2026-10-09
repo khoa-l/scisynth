@@ -136,7 +136,9 @@ def test_a_grid_that_became_points_is_binned(field: AnalyticField) -> None:
 
 def test_multichannel_and_one_axis() -> None:
     obs = Observation(
-        np.arange(12.0).reshape(6, 2), {"t": np.arange(6.0)}, np.ones(6, bool)
+        np.arange(12, dtype=np.float64).reshape(6, 2),
+        {"t": np.arange(6.0)},
+        np.ones(6, bool),
     )
     out = Downsample(3)(obs, rng())
     assert np.allclose(out.values, [[2.0, 3.0], [8.0, 9.0]])

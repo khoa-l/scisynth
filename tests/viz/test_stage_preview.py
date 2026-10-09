@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import (
     AnalyticField,
@@ -12,7 +15,7 @@ from scisynth.viz import plot, plot_observations
 pytest.importorskip("plotly")
 
 
-def colors(fig: object, i: int) -> np.ndarray:
+def colors(fig: object, i: int) -> NDArray[Any]:
     return np.asarray(fig.data[i].marker.color)  # type: ignore[attr-defined]
 
 

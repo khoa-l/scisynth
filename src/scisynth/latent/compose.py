@@ -152,7 +152,7 @@ class Multichannel(LatentPlotMixin):
             if not (np.allclose(matrix, matrix.T) and np.allclose(np.diag(matrix), 1)):
                 raise ValueError("corr must be symmetric with a unit diagonal")
             try:
-                self._mix = np.linalg.cholesky(matrix)
+                self._mix = np.asarray(np.linalg.cholesky(matrix), dtype=np.float64)
             except np.linalg.LinAlgError:
                 raise ValueError("corr must be positive definite") from None
             self.corr = matrix

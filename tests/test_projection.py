@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 import scisynth as ok
 from scisynth.testing.invariants import check_observation
@@ -20,21 +21,22 @@ class PCA:
     def get_params(self) -> dict[str, int]:
         return {"n_components": self.n_components}
 
-    def fit(self, x: np.ndarray) -> PCA:
+    def fit(self, x: NDArray[Any]) -> PCA:
         self.mean_ = x.mean(axis=0)
         _, _, vt = np.linalg.svd(x - self.mean_, full_matrices=False)
         self.components_ = vt[: self.n_components]
         return self
 
-    def transform(self, x: np.ndarray) -> np.ndarray:
-        return (x - self.mean_) @ self.components_.T
+    def transform(self, x: NDArray[Any]) -> NDArray[Any]:
+        embedded: NDArray[Any] = (x - self.mean_) @ self.components_.T
+        return embedded
 
 
 class FitTransformOnly:
-    def fit(self, x: np.ndarray) -> FitTransformOnly:
+    def fit(self, x: NDArray[Any]) -> FitTransformOnly:
         return self
 
-    def fit_transform(self, x: np.ndarray) -> np.ndarray:
+    def fit_transform(self, x: NDArray[Any]) -> NDArray[Any]:
         return x
 
 
@@ -190,10 +192,10 @@ def test_plot_samples_across_the_range_of_the_embedding(trace: ok.Trace) -> None
 
 def test_extend_needs_no_get_params(trace: ok.Trace) -> None:
     class Bare:
-        def fit(self, x: np.ndarray) -> Bare:
+        def fit(self, x: NDArray[Any]) -> Bare:
             return self
 
-        def transform(self, x: np.ndarray) -> np.ndarray:
+        def transform(self, x: NDArray[Any]) -> NDArray[Any]:
             return x[:, :2]
 
     out = ok.Projection(Bare()).fit(trace[0]).extend(trace)

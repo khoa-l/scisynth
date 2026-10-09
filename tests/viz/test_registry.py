@@ -191,7 +191,7 @@ def test_require_gives_install_hint(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_viz_extra_declared() -> None:
-    import tomllib
+    tomllib = pytest.importorskip("tomllib")  # Python 3.11 and up
 
     data = tomllib.loads((SRC.parent / "pyproject.toml").read_text())
     extras = data["project"]["optional-dependencies"]

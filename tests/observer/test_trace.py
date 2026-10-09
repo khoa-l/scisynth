@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from scisynth import (
     AnalyticField,
@@ -104,7 +107,7 @@ def test_only_the_changed_axis_counts_as_a_move(field: AnalyticField) -> None:
 
 
 def test_masked_locations_that_come_back_are_added() -> None:
-    coords = {"x": np.arange(4.0)}
+    coords: dict[str, NDArray[Any]] = {"x": np.arange(4.0)}
     before = Observation(np.ones((4, 1)), coords, np.array([True, False, False, True]))
     after = Observation(np.ones((4, 1)), coords, np.array([True, True, False, False]))
     diff = StageDiff("revive", before, after)
