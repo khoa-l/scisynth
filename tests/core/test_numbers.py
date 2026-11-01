@@ -28,7 +28,9 @@ def test_integer_parameters_refuse_fractions() -> None:
     with pytest.raises(ValueError, match="n must be an integer"):
         RandomInsertion(n=2.5).run(obs, 0)
     with pytest.raises(ValueError, match="shape must be an integer"):
-        GridSampler((4, 2.5))  # type: ignore[arg-type]
+        GridSampler((4, 2.5)).run(
+            AnalyticField(lambda x, y: x + y, Domain.from_extents([(0, 1), (0, 1)])), 0
+        )
     with pytest.raises(ValueError, match="n must be an integer"):
         PointSampler(2.7).run(
             AnalyticField(lambda x: x, Domain.from_extents([(0, 1)])), 0

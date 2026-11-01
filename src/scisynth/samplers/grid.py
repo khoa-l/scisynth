@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, ClassVar, cast
 
 import numpy as np
 
 from ..core._grid import as_shape, check_cells
-from ..core._numbers import as_int
 from ..core.observation import Observation
+from ..core.params import Param
 from ..latent.base import FieldLatent, Kind, Latent
 from .base import Sampler
 
@@ -23,8 +23,10 @@ class GridSampler(Sampler):
 
     Parameters
     ----------
-    shape : int or sequence of int
-        Samples per axis; an int is repeated for every axis.
+    shape : int, sequence of int or distribution
+        Samples per axis; an int is repeated for every axis. A distribution or
+        callable is drawn once per call. Checked when sampling, once the number of
+        axes is known.
     max_cells : int, default=10_000_000
         Upper limit on ``prod(shape)``, checked before allocating. The grid grows as
         ``n ** ndim``, so use a :class:`PointSampler` for high-dimensional domains.
@@ -46,14 +48,9 @@ class GridSampler(Sampler):
     (64, 64, 1)
     """
 
-    shape: int | Sequence[int]
+    shape: Param
     max_cells: int = MAX_GRID_CELLS
     accepts: ClassVar[frozenset[Kind]] = frozenset({"field"})
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        if not isinstance(self.shape, int):
-            self.shape = tuple(as_int(n, "shape") for n in self.shape)
 
     def sample(
         self, latent: Latent, rng: np.random.Generator, params: Mapping[str, Any]

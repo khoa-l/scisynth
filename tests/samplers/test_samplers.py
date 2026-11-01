@@ -27,6 +27,26 @@ def test_grid_sampler_scalar_shape_repeats(field: AnalyticField) -> None:
     assert GridSampler(6)(field, np.random.default_rng(0)).values.shape == (6, 6, 1)
 
 
+@pytest.mark.parametrize(
+    "shape",
+    [np.int64(6), 6.0, (np.int64(6), np.int64(6)), np.array([6, 6]), lambda rng: 6],
+)
+def test_grid_sampler_accepts_any_whole_number_shape(
+    field: AnalyticField, shape: object
+) -> None:
+    obs = GridSampler(shape).run(field, seed=0)  # type: ignore[arg-type]
+    assert obs.values.shape == (6, 6, 1)
+
+
+def test_grid_sampler_draws_shape_from_a_distribution(field: AnalyticField) -> None:
+    from scipy import stats
+
+    sampler = GridSampler(stats.randint(4, 8))
+    shapes = {sampler.run(field, seed=s).spatial_shape for s in range(20)}
+    assert len(shapes) > 1
+    assert all(a == b and 4 <= a < 8 for a, b in shapes)
+
+
 def test_grid_sampler_wrong_ndim(field: AnalyticField) -> None:
     with pytest.raises(ValueError, match="Expected 2 positive sizes"):
         GridSampler((3, 3, 3))(field, np.random.default_rng(0))

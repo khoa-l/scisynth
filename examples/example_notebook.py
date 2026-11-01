@@ -5,7 +5,7 @@
 
 import marimo
 
-__generated_with = "0.25.1"
+__generated_with = "0.23.15"
 app = marimo.App(width="medium")
 
 with app.setup(hide_code=True):
@@ -470,6 +470,9 @@ def _(domain):
     ]
     _corr = np.eye(6)
     _corr[:3, :3] = _corr[3:, 3:] = 0.9
+
+    print(_corr)
+
     np.fill_diagonal(_corr, 1.0)
     grouped = sy.Multichannel(*_fields, corr=_corr)
     grouped_obs = sy.Observer(sy.GridSampler(48), [sy.GaussianNoise(0.3)]).run(
