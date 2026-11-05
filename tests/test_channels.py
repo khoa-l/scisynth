@@ -12,6 +12,7 @@ from scisynth import (
     GaussianNoise,
     GridSampler,
     PointSampler,
+    PoissonNoise,
     Quantize,
     RandomDropout,
     Saturate,
@@ -71,6 +72,11 @@ def test_noise_is_drawn_per_channel(three: Multichannel) -> None:
     assert resid[:, 1].std() == pytest.approx(1.0, rel=0.1)
     assert resid[:, 2].std() == pytest.approx(5.0, rel=0.1)
     check_observation(out)
+    scale = np.array([1.0, 10.0, 100.0])
+    shot = PoissonNoise(scale)(obs, rng())
+    variance = ((shot.values - obs.values) ** 2).reshape(-1, 3).mean(axis=0)
+    expected = obs.values.reshape(-1, 3).mean(axis=0) / scale
+    assert variance == pytest.approx(expected, rel=0.15)
 
 
 def test_dropout_masks_every_channel_of_a_location(three: Multichannel) -> None:

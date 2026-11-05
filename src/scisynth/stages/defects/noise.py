@@ -54,9 +54,11 @@ class PoissonNoise(Stage):
 
     Parameters
     ----------
-    scale : float or distribution, default=1.0
+    scale : float, array-like or distribution, default=1.0
         Counts per unit of value. The output is ``Poisson(values * scale) / scale``,
-        so it stays unbiased and its relative noise falls as ``scale`` grows.
+        so it stays unbiased and its relative noise falls as ``scale`` grows. An
+        array broadcasts against ``values``, so one entry per channel acts per
+        channel.
 
     Raises
     ------
@@ -81,9 +83,9 @@ class PoissonNoise(Stage):
     def apply(
         self, obs: Observation, rng: np.random.Generator, params: Mapping[str, Any]
     ) -> Observation:
-        scale = float(params["scale"])
-        if scale <= 0:
-            raise ValueError(f"scale must be > 0, got {scale}")
+        scale = np.asarray(params["scale"], dtype=np.float64)
+        if np.any(scale <= 0):
+            raise ValueError(f"scale must be > 0, got {params['scale']!r}")
         rate = np.where(obs.valid, obs.values * scale, 0.0)
         if np.any(rate < 0):
             raise ValueError("PoissonNoise requires non-negative values")
