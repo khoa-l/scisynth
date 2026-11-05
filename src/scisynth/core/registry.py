@@ -7,14 +7,12 @@ deserialized.
 
 from __future__ import annotations
 
-from typing import Any, TypeVar
-
-T = TypeVar("T", bound=type)
+from typing import Any
 
 _REGISTRY: dict[str, type[Any]] = {}
 
 
-def register(cls: T) -> T:
+def register[T: type](cls: T) -> T:
     """Register ``cls`` under its class name.
 
     Parameters

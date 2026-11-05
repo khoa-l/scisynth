@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.10"
+# requires-python = ">=3.13"
 # dependencies = ["scisynth[viz]", "marimo", "scikit-learn", "umap-learn"]
 # ///
 
