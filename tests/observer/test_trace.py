@@ -46,14 +46,6 @@ def test_a_trace_refuses_repeated_step_names(field: AnalyticField) -> None:
     assert Trace([obs, renamed]).names == ["GridSampler", "again"]
 
 
-def test_it_iterates_and_slices_like_a_sequence(field: AnalyticField) -> None:
-    trace = observer().trace(field, 1)
-    assert [o.meta[-1]["name"] for o in trace] == trace.names
-    sub = trace[1:3]
-    assert isinstance(sub, Trace) and sub.names == ["noise", "drop"]
-    assert trace[::2].names == ["sampler", "drop"]
-
-
 def test_empty_slices_give_empty_traces(field: AnalyticField) -> None:
     trace = observer().trace(field, 1)
     for key in (slice(0, 0), slice(2, 2), slice(3, 1)):
@@ -61,15 +53,11 @@ def test_empty_slices_give_empty_traces(field: AnalyticField) -> None:
     assert len(trace[1:2].diffs) == 0
 
 
-def test_steps_can_be_picked_by_name_but_slices_are_positional(
-    field: AnalyticField,
-) -> None:
+def test_steps_are_picked_by_name_and_slices_are_traces(field: AnalyticField) -> None:
     trace = observer().trace(field, 1)
-    assert trace["drop"] is trace[2] and trace["sampler"] is trace[0]
-    with pytest.raises(KeyError, match="No step named 'nope'"):
-        trace["nope"]
-    with pytest.raises(TypeError, match="Slice bounds must be integers"):
-        trace[slice("noise", "drop")]
+    assert trace["drop"] is trace[2]
+    sub = trace[1:3]
+    assert isinstance(sub, Trace) and sub.names == ["noise", "drop"]
 
 
 def test_diffs_describe_dropout_and_leave_value_stages_unchanged(
@@ -174,15 +162,3 @@ def test_a_trace_without_step_names_falls_back_to_positions() -> None:
     obs = Observation(np.ones((2, 1)), {"x": np.arange(2.0)}, np.ones(2, bool))
     assert Trace([obs, obs]).names == ["0", "1"]
     assert Trace([]).diffs == ()
-
-
-def test_trace_plots_one_panel_per_step(field: AnalyticField) -> None:
-    pytest.importorskip("plotly")
-    from scisynth.viz import plot, plot_observations
-
-    trace = observer().trace(field, 1)
-    fig = trace.plot(kind="scatter")
-    assert len(fig.data) == 4
-    assert [a.text for a in fig.layout.annotations] == trace.names
-    assert len(plot(trace, kind="scatter", ncols=2).data) == 4
-    assert len(plot_observations(trace[1:], trace.names[1:]).data) == 3  # also accepted

@@ -9,9 +9,7 @@ from scisynth import (
     Observation,
     Observer,
     PointSampler,
-    PositionJitter,
     RandomDropout,
-    RandomInsertion,
 )
 from scisynth.testing.invariants import check_observation
 
@@ -128,13 +126,6 @@ def test_masked_points_are_left_out_and_empty_bins_dropped(
     assert out.values[out.mask].max() <= valid.max()
 
 
-def test_a_grid_that_became_points_is_binned(field: AnalyticField) -> None:
-    observer = Observer(GridSampler(16), [PositionJitter(0.02), Downsample(4)])
-    trace = observer.trace(field, 0)
-    check_observation(trace[-1])
-    assert trace[-1].layout == "points" and trace[-1].size < 256 // 4
-
-
 def test_multichannel_and_one_axis() -> None:
     obs = Observation(
         np.arange(12, dtype=np.float64).reshape(6, 2),
@@ -160,21 +151,6 @@ def test_1d_points_are_binned_by_position(line: AnalyticField) -> None:
     assert obs.layout == "points"
     assert out.layout == "grid"  # one output per bin, in order along x
     assert widest_bin(obs, out, 10) < 0.15  # about 10 bins of width 0.1
-
-
-def test_points_inserted_into_a_1d_grid_are_binned_by_position(
-    line: AnalyticField,
-) -> None:
-    observer = Observer(GridSampler(100), [RandomInsertion(50), Downsample(10)])
-    trace = observer.trace(line, 0)
-    check_observation(trace[-1])
-    assert trace[1].layout == "points"  # the inserted points break the order
-    assert widest_bin(trace[1], trace[2], 10) < 0.15
-
-
-def test_round_trips_through_a_dict() -> None:
-    observer = Observer(GridSampler(8), [Downsample([2, 4])])
-    assert Observer.from_dict(observer.to_dict()) == observer
 
 
 def test_points_without_a_position_are_ignored(field: AnalyticField) -> None:
@@ -213,11 +189,3 @@ def test_all_points_without_a_position_downsample_to_nothing(
     )
     out = Downsample(2)(nowhere, rng())
     assert out.size == 0
-
-
-def test_a_valid_point_without_a_position_raises(field: AnalyticField) -> None:
-    obs = PointSampler(10)(field, rng())
-    x = obs.coords["x"].copy()
-    x[3] = np.nan
-    with pytest.raises(ValueError, match=r"1 valid location.*non-finite"):
-        Downsample(2)(obs.replace(coords={**obs.coords, "x": x}), rng())

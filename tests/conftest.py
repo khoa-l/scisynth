@@ -4,8 +4,50 @@ from typing import ClassVar
 import numpy as np
 import pytest
 
-from scisynth import AnalyticField, Domain, GaussianField
+from scisynth import (
+    AnalyticField,
+    Clip,
+    CoordinateShift,
+    Domain,
+    Downsample,
+    Drift,
+    Gain,
+    GaussianField,
+    GaussianNoise,
+    PoissonNoise,
+    PositionJitter,
+    Quantize,
+    RandomDropout,
+    RandomInsertion,
+    Saturate,
+    Stage,
+    ValueOffset,
+)
 from scisynth.latent.base import Kind
+
+# One instance of every implemented stage, for the checks every stage must pass.
+STAGES: list[Stage] = [
+    GaussianNoise(0.3),
+    PoissonNoise(2.0),
+    RandomDropout(0.2),
+    Quantize(levels=8, vmin=0.0, vmax=1.0),
+    Clip(-1.0, None),
+    Saturate(3.0),
+    ValueOffset(0.5),
+    Gain(2.0),
+    Drift(0.1, axis="x"),
+    CoordinateShift((0.1, 0.2)),
+    Downsample([2, 4]),
+    PositionJitter(0.05),
+    RandomInsertion(5),
+]
+
+
+@pytest.fixture(params=STAGES, ids=lambda stage: type(stage).__name__)
+def stage(request: pytest.FixtureRequest) -> Stage:
+    """Each implemented stage in turn."""
+    stage: Stage = request.param
+    return stage
 
 
 @dataclass

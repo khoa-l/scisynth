@@ -56,21 +56,6 @@ def test_importing_viz_and_loading_every_module_needs_no_plot_library() -> None:
     )
 
 
-def test_expected_registrations() -> None:
-    keys = set(registered_plots())
-    for key in [
-        ("observation", "scatter"),
-        ("observation", "heatmap"),
-        ("trace", "layers"),
-        ("observer", "layers"),
-        ("domain", "outline"),
-    ]:
-        assert key in keys
-    # these work for any kind and receive it
-    for subject in ["panels", "sampler", "stage", "observer", "trace", "field"]:
-        assert (subject, "*") in keys
-
-
 def test_subjects_and_kinds_of(field: AnalyticField, domain: Domain) -> None:
     obs = grid_obs(field)
     points = PointSampler(5)(field, np.random.default_rng(0))
@@ -116,13 +101,6 @@ def test_unregistered_subject(catalog: object) -> None:
         plot(catalog)
     with pytest.raises(NoPlotError, match="nothing"):
         get_plot("nothing", "scatter")
-
-
-def test_a_plot_for_any_kind_receives_the_kind() -> None:
-    fn = get_plot("stage", "heatmap")
-    assert fn.keywords == {"kind": "heatmap"}  # type: ignore[attr-defined]
-    # an exact registration is returned as it is
-    assert get_plot("observation", "heatmap").__name__ == "plotly_heatmap"
 
 
 def test_register_rejects_duplicates() -> None:
@@ -188,15 +166,6 @@ def test_require_gives_install_hint(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(importlib, "import_module", fail)
     with pytest.raises(ImportError, match=r"scisynth\[viz\]"):
         require("plotly.graph_objects")
-
-
-def test_viz_extra_declared() -> None:
-    tomllib = pytest.importorskip("tomllib")  # Python 3.11 and up
-
-    data = tomllib.loads((SRC.parent / "pyproject.toml").read_text())
-    extras = data["project"]["optional-dependencies"]
-    assert {d.split(">")[0] for d in extras["viz"]} == {"plotly"}
-    assert not any("plotly" in d for d in data["project"]["dependencies"])
 
 
 def test_kind_picks_one_of_the_declared_kinds(

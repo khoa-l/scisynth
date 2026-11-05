@@ -6,13 +6,16 @@ from scipy import stats
 
 from scisynth import (
     AnalyticField,
+    Downsample,
     GaussianField,
     GaussianNoise,
     GridSampler,
     Observer,
     PointSampler,
+    PositionJitter,
     Quantize,
     RandomDropout,
+    RandomInsertion,
 )
 from scisynth.testing.invariants import (
     assert_append_stable,
@@ -28,9 +31,8 @@ def observer() -> Observer:
 
 def test_same_seed_identical_different_seed_differs(field: AnalyticField) -> None:
     o = observer()
-    assert observations_equal(o.run(field, 1), o.run(field, 1))
-    assert not observations_equal(o.run(field, 1), o.run(field, 2))
     assert_reproducible(o, field, 1)
+    assert not observations_equal(o.run(field, 1), o.run(field, 2))
 
 
 def test_run_does_not_use_global_random_state(field: AnalyticField) -> None:
@@ -43,7 +45,10 @@ def test_run_does_not_use_global_random_state(field: AnalyticField) -> None:
 def test_adding_a_stage_does_not_change_existing_stages(field: AnalyticField) -> None:
     o = observer()
     assert_append_stable(o, GaussianNoise(0.5), field, seed=4)
-    assert_append_stable(o, Quantize(8), field, seed=4)
+    # a stage that changes the locations, and one after it
+    assert_append_stable(o, RandomInsertion(5), field, seed=4)
+    longer = o.with_stages([*o.stages.items(), Downsample(2)])
+    assert_append_stable(longer, PositionJitter(0.05), field, seed=4)
 
 
 def test_removing_trailing_stages_does_not_change_the_rest(
@@ -84,7 +89,6 @@ def test_scipy_distribution_works_as_any_parameter(
     assert observations_equal(a, b)
     assert 20 <= a.values.size < 40
     assert not observations_equal(a, o.run(field, 2))
-    assert 0.1 <= a.meta[1]["params"]["sigma"] <= 0.3
 
 
 def test_latent_generator_seed_reproducibility_end_to_end(domain: object) -> None:

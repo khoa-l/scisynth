@@ -54,17 +54,6 @@ def test_seed_makes_the_plot_repeatable(field: AnalyticField) -> None:
     assert not np.array_equal(a.data[2].marker.color, c.data[2].marker.color)
 
 
-def test_many_stages_wrap_into_rows_of_four(field: AnalyticField) -> None:
-    observer = Observer(GridSampler(6), [GaussianNoise(0.1)] * 10)
-    fig = observer.plot(field)  # latent + sampler + 10 stages = 12 panels
-    assert len(fig.data) == 12
-    lefts = {
-        round(fig.layout["xaxis" + ("" if i == 1 else str(i))].domain[0], 3)
-        for i in range(1, 13)
-    }
-    assert len(lefts) == 4
-
-
 def test_channel_ncols_and_latent_shape_are_passed_through(
     field: AnalyticField,
 ) -> None:

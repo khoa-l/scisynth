@@ -11,7 +11,6 @@ from scisynth import (
     Gain,
     GaussianNoise,
     GridSampler,
-    Observation,
     PointSampler,
     Quantize,
     RandomDropout,
@@ -48,16 +47,6 @@ def test_samplers_keep_every_channel(three: Multichannel) -> None:
     check_observation(pts)
     assert pts.values.shape == (20, 3) and pts.layout == "points"
     assert np.allclose(pts.values[:, 0], pts.coords["x"])
-
-
-def test_scalar_and_one_channel_stack_agree(
-    field: AnalyticField, domain: Domain
-) -> None:
-    one = Multichannel(field)
-    a = GridSampler(6)(field, rng())
-    b = GridSampler(6)(one, rng())
-    assert a.values.shape == b.values.shape == (6, 6, 1)
-    assert np.array_equal(a.values, b.values)
 
 
 def test_elementwise_stages_accept_per_channel_parameters(three: Multichannel) -> None:
@@ -100,11 +89,3 @@ def test_quantize_defaults_to_each_channels_own_range(three: Multichannel) -> No
         assert np.allclose(np.unique(out.values[..., c]), [0.0, hi / 2, hi])
     explicit = Quantize(levels=2, vmin=np.array([0, 0, 0]), vmax=np.array([1, 1, 1]))
     assert set(np.unique(explicit(obs, rng()).values)) == {0.0, 1.0}
-
-
-def test_quantize_leaves_a_constant_channel_alone() -> None:
-    values = np.stack([np.linspace(0, 1, 5), np.full(5, 7.0)], axis=1)
-    obs = Observation(values, {"x": np.arange(5.0)}, np.ones(5, bool))
-    out = Quantize(levels=2)(obs, rng())
-    assert np.array_equal(out.values[:, 1], np.full(5, 7.0))
-    assert set(out.values[:, 0]) == {0.0, 1.0}

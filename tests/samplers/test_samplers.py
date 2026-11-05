@@ -5,13 +5,17 @@ from scisynth import AnalyticField, GridSampler, PointSampler
 from scisynth.testing.invariants import check_observation
 
 
-def test_grid_sampler_layout(field: AnalyticField) -> None:
+def test_grid_sampler_layout_and_values(field: AnalyticField) -> None:
     obs = GridSampler((5, 9))(field, np.random.default_rng(0))
     check_observation(obs)
     assert obs.values.shape == (5, 9, 1)
     assert set(obs.coords) == {"x", "y"}
     assert obs.coords["x"][0] == 0.0 and obs.coords["x"][-1] == 1.0
     assert obs.coords["y"][-1] == 2.0
+    x, y = np.meshgrid(obs.coords["x"], obs.coords["y"], indexing="ij")
+    assert np.allclose(
+        obs.values[..., 0], 1.0 + np.sin(2 * np.pi * x) * np.cos(np.pi * y)
+    )
     assert obs.mask.all()
     assert np.array_equal(obs.truth, obs.values)  # type: ignore[arg-type]
     assert obs.meta == [
@@ -21,10 +25,6 @@ def test_grid_sampler_layout(field: AnalyticField) -> None:
             "params": {"shape": [5, 9], "max_cells": 10_000_000},
         }
     ]
-
-
-def test_grid_sampler_scalar_shape_repeats(field: AnalyticField) -> None:
-    assert GridSampler(6)(field, np.random.default_rng(0)).values.shape == (6, 6, 1)
 
 
 @pytest.mark.parametrize(
@@ -50,14 +50,6 @@ def test_grid_sampler_draws_shape_from_a_distribution(field: AnalyticField) -> N
 def test_grid_sampler_wrong_ndim(field: AnalyticField) -> None:
     with pytest.raises(ValueError, match="Expected 2 positive sizes"):
         GridSampler((3, 3, 3))(field, np.random.default_rng(0))
-
-
-def test_grid_values_match_function(field: AnalyticField) -> None:
-    obs = GridSampler((4, 4))(field, np.random.default_rng(0))
-    x, y = np.meshgrid(obs.coords["x"], obs.coords["y"], indexing="ij")
-    assert np.allclose(
-        obs.values[..., 0], 1.0 + np.sin(2 * np.pi * x) * np.cos(np.pi * y)
-    )
 
 
 def test_point_sampler_layout_and_bounds(field: AnalyticField) -> None:

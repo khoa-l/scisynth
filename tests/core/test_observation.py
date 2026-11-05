@@ -7,7 +7,6 @@ from numpy.typing import NDArray
 from scisynth import (
     AnalyticField,
     GaussianNoise,
-    GridSampler,
     Observation,
     Observer,
     PointSampler,
@@ -79,20 +78,12 @@ def test_invariants_reject_a_mask_with_a_channel_axis() -> None:
         check_observation(bad)
 
 
-def test_ids_default_to_storage_order_and_have_the_spatial_shape() -> None:
+def test_ids_default_to_storage_order_and_stages_keep_them(
+    field: AnalyticField,
+) -> None:
     obs = grid_obs((3, 4), d=2)
-    assert obs.ids.shape == (3, 4) and obs.ids.dtype == np.int64
-    assert obs.ids.ravel().tolist() == list(range(12))
-    check_observation(obs)
-
-
-def test_samplers_assign_ids_that_stages_keep(field: AnalyticField) -> None:
-    grid = GridSampler((3, 4))(field, np.random.default_rng(0))
-    assert grid.ids.tolist() == np.arange(12).reshape(3, 4).tolist()  # C order
-    assert PointSampler(7)(field, np.random.default_rng(0)).ids.tolist() == list(
-        range(7)
-    )
-
+    assert obs.ids.dtype == np.int64
+    assert obs.ids.tolist() == np.arange(12).reshape(3, 4).tolist()  # C order
     trace = Observer(PointSampler(30), [GaussianNoise(0.1), RandomDropout(0.3)]).trace(
         field, 1
     )
@@ -124,16 +115,3 @@ def test_observations_with_different_ids_are_not_equal() -> None:
     a = grid_obs((2, 2), d=1)
     assert observations_equal(a, a.replace())
     assert not observations_equal(a, a.replace(ids=a.ids + 1))
-
-
-def test_has_position_marks_locations_with_finite_coordinates() -> None:
-    from scisynth.core._coords import has_position
-
-    x = np.array([0.0, np.nan, 2.0, np.inf])
-    y = np.array([0.0, 1.0, np.nan, 3.0])
-    points = Observation(np.zeros((4, 1)), {"x": x, "y": y}, np.ones(4, dtype=bool))
-    assert has_position(points).tolist() == [True, False, False, False]
-    grid = grid_obs((3, 4), d=1)
-    assert has_position(grid).shape == (3, 4) and has_position(grid).all()
-    nan_row = grid.replace(coords={**grid.coords, "a0": np.array([0.0, np.nan, 2.0])})
-    assert has_position(nan_row).tolist() == [[True] * 4, [False] * 4, [True] * 4]

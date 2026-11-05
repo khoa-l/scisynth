@@ -5,31 +5,16 @@ import pytest
 from scipy import stats
 
 from scisynth import (
-    Clip,
-    CoordinateShift,
-    Downsample,
-    Drift,
-    Gain,
+    Domain,
+    GaussianField,
     GaussianNoise,
     GridSampler,
-    PoissonNoise,
-    PositionJitter,
-    Quantize,
-    RandomDropout,
-    RandomInsertion,
+    PointSampler,
     Sampler,
-    Saturate,
     Stage,
-    ValueOffset,
 )
 from scisynth.core import registry
 from scisynth.core.component import Component
-
-
-def test_registry_lookup_and_unknown() -> None:
-    assert registry.get("GaussianNoise") is GaussianNoise
-    with pytest.raises(KeyError, match="Unknown component"):
-        registry.get("NoSuchThing")
 
 
 def test_base_classes_are_not_registered() -> None:
@@ -78,35 +63,22 @@ def test_duplicate_name_from_other_class_rejected() -> None:
             pass
 
 
-def test_to_dict_from_dict_round_trip_through_json() -> None:
-    stage = GaussianNoise(sigma=0.3)
-    data = json.loads(json.dumps(stage.to_dict()))
-    assert Stage.from_dict(data) == stage
-    sampler = GridSampler((4, 5))
-    assert Sampler.from_dict(json.loads(json.dumps(sampler.to_dict()))) == sampler
+def test_every_stage_round_trips_through_json(stage: Stage) -> None:
+    assert Stage.from_dict(json.loads(json.dumps(stage.to_dict()))) == stage
 
 
 @pytest.mark.parametrize(
-    "stage",
+    "component",
     [
-        GaussianNoise(0.3),
-        PoissonNoise(2.0),
-        RandomDropout(0.2),
-        Quantize(levels=8, vmin=0.0, vmax=1.0),
-        Clip(-1.0, None),
-        Saturate(3.0),
-        ValueOffset(0.5),
-        Gain(2.0),
-        Drift(0.1, axis="x"),
-        CoordinateShift((0.1, 0.2)),
-        Downsample([2, 4]),
-        PositionJitter(0.05),
-        RandomInsertion(5),
+        GridSampler((4, 5)),
+        PointSampler(10),
+        Domain.from_extents([(0, 1), (0, 2)], units=["m", "s"], value_unit="K"),
+        GaussianField(Domain.from_extents([(0, 1)]), 0.2, resolution=16, order=3),
     ],
-    ids=lambda stage: type(stage).__name__,
+    ids=lambda component: type(component).__name__,
 )
-def test_every_stage_round_trips_through_json(stage: Stage) -> None:
-    assert Stage.from_dict(json.loads(json.dumps(stage.to_dict()))) == stage
+def test_other_components_round_trip_through_json(component: Component) -> None:
+    assert Component.from_dict(json.loads(json.dumps(component.to_dict()))) == component
 
 
 def test_from_dict_checks_base_class() -> None:

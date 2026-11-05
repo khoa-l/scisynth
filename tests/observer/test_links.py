@@ -72,7 +72,6 @@ def test_trace_slices_keep_their_links(field: AnalyticField) -> None:
     sliced = trace[1:]
     assert sliced.diffs[0].links is trace.diffs[1].links
     assert trace[::2].diffs[0].links.shape == (16, 64)  # falls back to ids
-    assert len(trace[2:2].diffs) == 0
 
 
 def test_trace_checks_the_number_of_links(field: AnalyticField) -> None:

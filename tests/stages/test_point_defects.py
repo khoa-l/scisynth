@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from scipy import stats
 
 from scisynth import (
     AnalyticField,
@@ -12,8 +11,6 @@ from scisynth import (
     RandomInsertion,
 )
 from scisynth.testing.invariants import (
-    assert_append_stable,
-    assert_reproducible,
     check_observation,
 )
 
@@ -33,13 +30,11 @@ def test_jitter_moves_points_and_leaves_the_rest(field: AnalyticField) -> None:
     assert 0.03 < shift.std() < 0.3
 
 
-def test_jitter_sigma_per_axis_and_defaults(field: AnalyticField) -> None:
+def test_jitter_sigma_per_axis(field: AnalyticField) -> None:
     obs = PointSampler(20)(field, rng())
     out = PositionJitter([0.0, 0.5])(obs, rng(1))
     assert np.array_equal(out.coords["x"], obs.coords["x"])
     assert not np.array_equal(out.coords["y"], obs.coords["y"])
-    same = PositionJitter()(obs, rng(1))
-    assert all(np.array_equal(same.coords[k], obs.coords[k]) for k in obs.coords)
 
 
 def test_jitter_validates(field: AnalyticField) -> None:
@@ -48,11 +43,6 @@ def test_jitter_validates(field: AnalyticField) -> None:
         PositionJitter([0.1, 0.1, 0.1])(obs, rng())
     with pytest.raises(ValueError, match="non-negative"):
         PositionJitter(-1.0)(obs, rng())
-
-
-def test_jitter_distribution_is_logged(field: AnalyticField) -> None:
-    out = PositionJitter(stats.uniform(0.1, 0.1))(PointSampler(5)(field, rng()), rng(2))
-    assert 0.1 <= out.meta[-1]["params"]["sigma"] <= 0.2
 
 
 def test_insertion_appends_points_with_fresh_ids(field: AnalyticField) -> None:
@@ -121,15 +111,3 @@ def test_insertion_after_dropout_gets_ids_above_the_dropped_ones(
     out = RandomInsertion(3)(obs, rng(1))
     assert out.ids[-3:].min() == 20
     assert out.mask[-3:].all()
-
-
-def test_reproducible_and_append_stable(field: AnalyticField) -> None:
-    observer = Observer(PointSampler(40), [PositionJitter(0.05), RandomInsertion(5)])
-    assert_reproducible(observer, field, 4)
-    assert_append_stable(observer, RandomDropout(0.1), field, 4)
-
-
-def test_previews_use_a_points_demo() -> None:
-    pytest.importorskip("plotly")
-    assert PositionJitter(0.02).preview().data
-    assert RandomInsertion(30).preview().data

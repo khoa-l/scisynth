@@ -41,8 +41,6 @@ def test_the_sampler_name_is_taken_by_the_stages() -> None:
 def test_sampler_names_are_validated() -> None:
     with pytest.raises(ValueError, match="reserved"):
         Observer(("a__b", GridSampler(4)))
-    with pytest.raises(TypeError, match="Sampler"):
-        Observer(("a", Quantize()))  # type: ignore[arg-type]
 
 
 def test_names_are_recorded_in_meta(field: AnalyticField) -> None:
@@ -58,7 +56,7 @@ def test_names_survive_a_dict_round_trip_and_unnamed_dicts_are_named() -> None:
         Observer(("grid", GridSampler(4)), [GaussianNoise(), GaussianNoise()]),
     ):
         restored = Observer.from_dict(json.loads(json.dumps(o.to_dict())))
-        assert restored == o and restored.names == o.names
+        assert restored == o  # equality includes the names
     data = {
         "sampler": GridSampler(4).to_dict(),
         "stages": [

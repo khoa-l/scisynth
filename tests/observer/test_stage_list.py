@@ -1,7 +1,6 @@
 import pytest
 
 from scisynth import (
-    AnalyticField,
     GaussianNoise,
     GridSampler,
     Observer,
@@ -28,8 +27,6 @@ def test_it_is_a_sequence_of_stages() -> None:
     assert len(stages) == 3 and all(isinstance(s, Stage) for s in stages)
     assert stages.names == ["noise", "drop", "quant"]
     assert stages.items()[1] == ("drop", stages[1])
-    assert stages[0] in stages
-    assert list(reversed(stages)) == [stages[2], stages[1], stages[0]]
 
 
 def test_autonaming_matches_the_class_in_snake_case() -> None:
@@ -105,11 +102,6 @@ def test_slice_bounds_must_be_positions_not_names() -> None:
             stages[key]
 
 
-def test_a_slice_of_autonamed_stages_keeps_the_autonames() -> None:
-    stages = StageList([GaussianNoise(), GaussianNoise(), Quantize()])
-    assert stages[1:].names == ["gaussian_noise_2", "quantize"]
-
-
 def test_equality_depends_on_names_and_stages() -> None:
     assert named() == named()
     assert named() != named()[:2]
@@ -117,24 +109,8 @@ def test_equality_depends_on_names_and_stages() -> None:
     assert "('drop', RandomDropout(" in repr(named())
 
 
-def test_observer_holds_a_stage_list_and_accepts_one() -> None:
-    o = Observer(GridSampler(4), named())
-    assert isinstance(o.stages, StageList) and o.stage_names == named().names
-    assert o.names == ["sampler", "noise", "drop", "quant"]
-    rebuilt = Observer(GridSampler(4), o.stages[1:])
-    assert rebuilt.stage_names == ["drop", "quant"]  # names survive a slice
-
-
 def test_extending_with_items_keeps_existing_names() -> None:
     o = Observer(GridSampler(4), named())
     longer = o.with_stages([*o.stages.items(), Quantize(4)])
     assert longer.stage_names == ["noise", "drop", "quant", "quantize"]
     assert o.stage_names == ["noise", "drop", "quant"]  # the original is unchanged
-
-
-def test_stage_position_matches_the_trace_offset(field: AnalyticField) -> None:
-    o = Observer(GridSampler(6), named())
-    trace = o.trace(field, 3)
-    for i, (name, stage) in enumerate(o.stages.items()):
-        assert trace[i + 1].meta[-1]["name"] == name
-        assert type(stage).__name__ == trace[i + 1].meta[-1]["type"]

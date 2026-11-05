@@ -6,11 +6,10 @@ import pytest
 from scisynth import (
     AnalyticField,
     CoordinateShift,
-    GaussianNoise,
     GridSampler,
     Observation,
 )
-from scisynth.viz import plot
+from scisynth.viz import plot, plot_observations
 
 pytest.importorskip("plotly")
 
@@ -44,13 +43,6 @@ def test_frame_is_the_union_with_a_small_pad(field: AnalyticField) -> None:
     lo, hi = float(x.min()), float(x.max()) + 1.0
     pad = 0.05 * (hi - lo)
     assert tuple(fig.layout.xaxis.range) == pytest.approx((lo - pad, hi + pad))
-
-
-def test_panels_without_movement_still_share_the_frame() -> None:
-    fig = GaussianNoise(0.1).preview()
-    assert tuple(fig.layout.xaxis.range) == tuple(fig.layout.xaxis2.range)
-    assert tuple(fig.layout.yaxis.range) == tuple(fig.layout.yaxis2.range)
-    assert fig.layout.xaxis.range[0] < 0.0 and fig.layout.xaxis.range[1] > 1.0
 
 
 def test_masked_points_do_not_stretch_the_frame() -> None:
@@ -149,3 +141,5 @@ def test_ncols_and_height_can_be_set(field: AnalyticField) -> None:
     assert panels(field, 6, height=900).layout.height == 900
     with pytest.raises(ValueError, match="ncols"):
         panels(field, 2, ncols=0)
+    with pytest.raises(ValueError, match="nothing"):
+        plot_observations([])

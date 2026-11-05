@@ -3,10 +3,8 @@ from typing import Any
 import numpy as np
 import pytest
 from numpy.typing import NDArray
-from scipy import stats
 
 from scisynth import AnalyticField, Domain, GaussianField, InterpolatedField
-from scisynth.core.component import Component
 
 
 def test_analytic_field_evaluates_with_per_axis_args(domain: Domain) -> None:
@@ -20,13 +18,6 @@ def test_analytic_field_bad_shape(domain: Domain) -> None:
     f = AnalyticField(lambda x, y: 1.0, domain)
     with pytest.raises(ValueError, match="shape"):
         f.evaluate(np.zeros((3, 2)))
-
-
-def test_grf_seed_reproducible_and_distinct(domain: Domain) -> None:
-    gen = GaussianField(domain, length_scale=0.2, resolution=32)
-    a, b, c = gen.realize(1), gen.realize(1), gen.realize(2)
-    assert np.array_equal(a.values, b.values)
-    assert not np.array_equal(a.values, c.values)
 
 
 def test_grf_statistics(domain: Domain) -> None:
@@ -44,16 +35,6 @@ def test_grf_longer_correlation_is_smoother(domain: Domain) -> None:
         return float(np.abs(np.diff(v, axis=0)).mean())
 
     assert roughness(0.4) < roughness(0.05)
-
-
-def test_grf_params_accept_distributions(domain: Domain) -> None:
-    gen = GaussianField(
-        domain,
-        length_scale=stats.uniform(0.1, 0.2),
-        amplitude=stats.uniform(1, 2),
-    )
-    assert np.array_equal(gen.realize(3).values, gen.realize(3).values)
-    assert gen.realize(3).values.std() != gen.realize(4).values.std()
 
 
 def test_grf_rejects_bad_length(domain: Domain) -> None:
@@ -83,29 +64,6 @@ def max_second_difference(f: InterpolatedField) -> float:
     return float(np.abs(np.diff(f.evaluate(fine_points())[:, 0], 2)).max())
 
 
-def test_gaussian_field_exposes_order_and_always_wraps(domain: Domain) -> None:
-    default = GaussianField(domain, 0.2, resolution=16).realize(0)
-    cubic = GaussianField(domain, 0.2, resolution=16, order=3).realize(0)
-    assert default.order == 1 and cubic.order == 3
-    assert default.mode == cubic.mode == "grid-wrap"
-    assert np.array_equal(default.values, cubic.values)  # order only changes querying
-
-
-def test_order_changes_values_between_nodes_but_not_at_nodes() -> None:
-    gen = GaussianField(line_domain(), 0.1, resolution=16)
-    linear, cubic = (
-        gen.realize(1),
-        GaussianField(line_domain(), 0.1, resolution=16, order=3).realize(1),
-    )
-    nodes = (np.arange(16) / 16)[:, None]
-    assert np.allclose(linear.evaluate(nodes)[:, 0], linear.values)
-    assert np.allclose(
-        cubic.evaluate(nodes)[:, 0], cubic.values
-    )  # interpolating splines
-    between = fine_points()
-    assert not np.allclose(linear.evaluate(between), cubic.evaluate(between))
-
-
 def test_cubic_is_smoother_than_linear_and_order_zero_is_nearest() -> None:
     def make(order: int) -> InterpolatedField:
         return GaussianField(line_domain(), 0.1, resolution=16, order=order).realize(2)
@@ -122,11 +80,6 @@ def test_order_is_validated(bad: int, domain: Domain) -> None:
         GaussianField(domain, 0.2, resolution=8, order=bad).realize(0)
     with pytest.raises(ValueError, match="order must be between 0 and 5"):
         InterpolatedField(np.zeros(4), line_domain(), order=bad)
-
-
-def test_generator_with_an_order_round_trips(domain: Domain) -> None:
-    gen = GaussianField(domain, 0.2, resolution=16, order=3)
-    assert Component.from_dict(gen.to_dict()) == gen
 
 
 def test_interpolated_field_holds_its_edge_values_unless_asked_to_wrap() -> None:

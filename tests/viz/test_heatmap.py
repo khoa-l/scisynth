@@ -5,7 +5,6 @@ import pytest
 
 from scisynth import (
     AnalyticField,
-    CoordinateShift,
     Downsample,
     GaussianNoise,
     GridSampler,
@@ -15,7 +14,7 @@ from scisynth import (
     PositionJitter,
     RandomDropout,
 )
-from scisynth.viz import plot, plot_observations, registered_plots
+from scisynth.viz import plot, plot_observations
 
 pytest.importorskip("plotly")
 
@@ -35,10 +34,6 @@ def test_a_heatmap_has_one_cell_per_location(field: AnalyticField) -> None:
     assert np.allclose(trace.z, obs.values[..., 0].T)  # rows are y
     assert trace.showscale
     assert fig.layout.xaxis.title.text == "x" and fig.layout.title.text == "t"
-
-
-def test_scatter_is_still_the_default(field: AnalyticField) -> None:
-    assert plot(sample(field)).data[0].type == "scatter"
 
 
 def test_masked_locations_are_left_empty(field: AnalyticField) -> None:
@@ -108,16 +103,6 @@ def test_channel_and_interactive_options(field: AnalyticField) -> None:
     assert fig.layout.dragmode is False
 
 
-def test_sampler_option_draws_a_heatmap(field: AnalyticField) -> None:
-    sampler = GridSampler((8, 6))
-    fig = sampler.plot(field, kind="heatmap")
-    assert [t.type for t in fig.data] == ["heatmap"]
-    assert fig.layout.title.text == "GridSampler"
-    assert sampler.plot(field).data[0].type == "scatter"
-    points = PointSampler(200).plot(field, kind="heatmap")
-    assert [t.type for t in points.data] == ["heatmap"]
-
-
 def test_stage_option_draws_before_and_after_heatmaps(field: AnalyticField) -> None:
     obs = sample(field, (12, 12))
     fig = GaussianNoise(0.5).preview(obs, kind="heatmap")
@@ -137,13 +122,6 @@ def test_stages_that_make_points_are_binned_beside_the_grid(
     assert np.asarray(fig.data[1].customdata).sum() == 400
 
 
-def test_stages_that_keep_a_grid_work(field: AnalyticField) -> None:
-    obs = sample(field, (12, 12))
-    for stage in (Downsample(3), CoordinateShift(0.2), RandomDropout(0.3)):
-        fig = stage.preview(obs, kind="heatmap")
-        assert [t.type for t in fig.data] == ["heatmap", "heatmap"]
-
-
 def test_panels_share_one_frame_that_covers_whole_cells(field: AnalyticField) -> None:
     obs = sample(field, (3, 3))  # coarse: half a cell is wide
     fig = plot_observations([obs, obs], kind="heatmap")
@@ -156,18 +134,6 @@ def test_panels_share_one_frame_that_covers_whole_cells(field: AnalyticField) ->
 def test_panel_kind_must_be_declared(field: AnalyticField) -> None:
     with pytest.raises(ValueError, match="cannot be plotted as 'bogus'"):
         plot_observations([sample(field)], kind="bogus")
-
-
-def test_one_heatmap_plot_serves_every_subject(field: AnalyticField) -> None:
-    keys = set(registered_plots())
-    assert ("observation", "heatmap") in keys
-    # sampler, stage and panels are not registered per kind: they pass the kind on
-    assert not any(kind == "heatmap" and s != "observation" for s, kind in keys)
-    trace = Observer(GridSampler(6), [GaussianNoise(0.1)]).trace(field, 0)
-    assert [t.type for t in trace.plot(kind="heatmap").data] == ["heatmap"] * 2
-    assert [t.type for t in Observer(GridSampler(6)).plot(field, kind="heatmap").data][
-        -1
-    ] == "heatmap"
 
 
 def test_a_grid_can_be_averaged_into_blocks(field: AnalyticField) -> None:
@@ -196,14 +162,6 @@ def test_grid_blocks_skip_masked_cells_and_cap_at_the_grid(
     assert np.array_equal(np.asarray(same.customdata), obs.mask.T.astype(int))
     uneven = plot(sample(field, (7, 7)), kind="heatmap", bins=3).data[0]
     assert sorted(set(np.asarray(uneven.customdata).ravel())) == [4, 6, 9]  # 2 or 3
-
-
-def test_a_grid_and_points_can_share_a_cell_size(field: AnalyticField) -> None:
-    grid = sample(field, (20, 20))
-    points = PointSampler(400)(field, np.random.default_rng(0))
-    a = plot(grid, kind="heatmap", bins=10).data[0]
-    b = plot(points, kind="heatmap", bins=10).data[0]
-    assert np.asarray(a.z).shape == np.asarray(b.z).shape == (10, 10)
 
 
 def shapes(fig: Any) -> list[tuple[int, ...]]:

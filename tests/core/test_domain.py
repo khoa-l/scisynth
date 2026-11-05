@@ -1,7 +1,6 @@
 import pytest
 
 from scisynth import Axis, Domain
-from scisynth.core.component import Component
 
 
 def test_from_extents_defaults() -> None:
@@ -16,8 +15,3 @@ def test_validation() -> None:
         Axis("x", (1, 0))
     with pytest.raises(ValueError, match="Duplicate"):
         Domain((Axis("x", (0, 1)), Axis("x", (0, 1))))
-
-
-def test_round_trip() -> None:
-    d = Domain.from_extents([(0, 1), (0, 2)], units=["m", "s"], value_unit="K")
-    assert Component.from_dict(d.to_dict()) == d
