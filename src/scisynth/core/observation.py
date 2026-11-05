@@ -12,7 +12,7 @@ import numpy as np
 from ._types import Array, BoolArray, FloatArray
 
 
-@dataclass
+@dataclass(eq=False)
 class Observation:
     """Observed values plus everything needed to interpret them.
 
@@ -31,7 +31,8 @@ class Observation:
         True where a location is valid, for all channels at once.
     truth : ndarray of shape (*spatial, d), optional
         The noise-free sample of the latent, kept for evaluation. Stages never
-        change it.
+        change its values; a stage that changes the locations moves, merges or
+        extends it with them.
     meta : list of dict
         One record per step that ran, in order:
         ``{"name": step name, "type": class name, "params": resolved parameters}``.
@@ -40,8 +41,8 @@ class Observation:
         the pipeline so that steps can be compared even when locations are removed
         or added. Defaults to ``0, 1, 2, ...`` in storage order, which is what the
         samplers produce. A stage that changes the number of locations must pass
-        ``ids`` with the new spatial shape (``replace`` raises otherwise), keeping
-        the ids of the locations it keeps and giving new ones fresh values.
+        ``ids`` with the new spatial shape, keeping the ids of the locations it
+        keeps and giving new ones fresh values.
 
     Attributes
     ----------
@@ -67,6 +68,19 @@ class Observation:
         What :func:`scisynth.viz.plot` draws it as: the subject ``"observation"`` in
         the kinds ``"scatter"`` (the default) and ``"heatmap"``. Both are for 2-D
         observations.
+
+    Raises
+    ------
+    ValueError
+        If the arrays do not have matching shapes (see :func:`check_shapes`).
+        Because ``replace`` builds a new observation, a stage that changes the
+        number of locations must pass ``values``, ``mask``, ``coords``, ``ids`` and
+        ``truth`` together in one ``replace``.
+
+    Notes
+    -----
+    ``==`` compares identity, not contents; use
+    :func:`scisynth.testing.invariants.observations_equal` to compare contents.
     """
 
     plot_subjects: ClassVar[tuple[str, ...]] = ("observation",)
@@ -84,16 +98,11 @@ class Observation:
         self.mask = np.asarray(self.mask, dtype=np.bool_)
         if self.values.ndim < 1:
             raise ValueError("values needs a trailing channel axis, got a scalar")
-        spatial = self.spatial_shape
         if self.ids is None:
-            self.ids = np.arange(self.size, dtype=np.int64).reshape(spatial)
+            self.ids = np.arange(self.size, dtype=np.int64).reshape(self.spatial_shape)
         else:
             self.ids = np.asarray(self.ids, dtype=np.int64)
-            if self.ids.shape != spatial:
-                raise ValueError(
-                    f"ids shape {self.ids.shape} != spatial shape {spatial}; a stage "
-                    "that changes the number of locations must also pass ids"
-                )
+        check_shapes(self)
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -169,3 +178,43 @@ class Observation:
             A new observation with the changes applied.
         """
         return dataclasses.replace(self, **changes)
+
+
+def check_shapes(obs: Observation) -> None:
+    """Check that the arrays of an observation have matching shapes.
+
+    ``mask`` and ``ids`` must have the spatial shape, ``truth`` (if given) the shape
+    of ``values``, and the coordinates must fit a grid or points layout. Only shapes
+    are checked, so it is cheap: :class:`Observation` runs it on every construction.
+
+    Parameters
+    ----------
+    obs : Observation
+        The observation to check.
+
+    Raises
+    ------
+    ValueError
+        If a shape does not match.
+    """
+    spatial = obs.spatial_shape
+    if obs.ids.shape != spatial:
+        raise ValueError(
+            f"ids shape {obs.ids.shape} != spatial shape {spatial}; a stage that "
+            "changes the number of locations must also pass ids"
+        )
+    if obs.mask.shape != spatial:
+        raise ValueError(
+            f"mask shape {obs.mask.shape} != spatial shape {spatial} of values "
+            f"{obs.values.shape}"
+        )
+    if obs.truth is not None and np.shape(obs.truth) != obs.values.shape:
+        raise ValueError(
+            f"truth shape {np.shape(obs.truth)} != values shape {obs.values.shape}"
+        )
+    coords = list(obs.coords.values())
+    if obs.layout == "points" and any(np.shape(c) != spatial for c in coords):
+        raise ValueError(
+            f"coords {[np.shape(c) for c in coords]} match neither a grid nor points "
+            f"layout for values of shape {obs.values.shape}"
+        )

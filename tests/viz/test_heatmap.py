@@ -97,7 +97,8 @@ def test_heatmap_needs_exactly_two_coordinates() -> None:
 
 def test_channel_and_interactive_options(field: AnalyticField) -> None:
     obs = sample(field)
-    obs = obs.replace(values=np.concatenate([obs.values, obs.values + 10], axis=-1))
+    two = np.concatenate([obs.values, obs.values + 10], axis=-1)
+    obs = obs.replace(values=two, truth=None)
     fig = plot(obs, kind="heatmap", channel=-1, interactive=False)
     assert np.allclose(fig.data[0].z, obs.values[..., 1].T)
     assert fig.layout.dragmode is False

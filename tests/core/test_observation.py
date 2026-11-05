@@ -71,11 +71,13 @@ def test_a_1d_observation_is_a_grid_only_if_its_coordinate_is_ordered(
     assert obs.layout == layout
 
 
-def test_invariants_reject_a_mask_with_a_channel_axis() -> None:
+def test_a_mask_with_a_channel_axis_is_rejected() -> None:
     obs = grid_obs()
-    bad = obs.replace(mask=np.ones(obs.shape, bool))
+    with pytest.raises(ValueError, match="mask shape"):
+        obs.replace(mask=np.ones(obs.shape, bool))
+    obs.mask = np.ones(obs.shape, bool)
     with pytest.raises(InvariantError, match="mask shape"):
-        check_observation(bad)
+        check_observation(obs)
 
 
 def test_ids_default_to_storage_order_and_stages_keep_them(
@@ -114,6 +116,7 @@ def test_valid_locations_need_finite_coordinates() -> None:
 def test_observations_equal_compares_ids_and_matches_missing_positions() -> None:
     a = grid_obs((2, 2), d=1)
     assert observations_equal(a, a.replace())
+    assert a == a and a != a.replace()
     assert not observations_equal(a, a.replace(ids=a.ids + 1))
     unplaced = Observation(
         np.array([[1.0], [np.nan]]),
