@@ -111,7 +111,13 @@ def test_valid_locations_need_finite_coordinates() -> None:
     check_observation(masked)  # no position is fine where there is no data
 
 
-def test_observations_with_different_ids_are_not_equal() -> None:
+def test_observations_equal_compares_ids_and_matches_missing_positions() -> None:
     a = grid_obs((2, 2), d=1)
     assert observations_equal(a, a.replace())
     assert not observations_equal(a, a.replace(ids=a.ids + 1))
+    unplaced = Observation(
+        np.array([[1.0], [np.nan]]),
+        {"x": np.array([0.0, np.nan])},
+        np.array([True, False]),
+    )
+    assert observations_equal(unplaced, unplaced.replace())

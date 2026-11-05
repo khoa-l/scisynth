@@ -102,7 +102,9 @@ def observations_equal(a: Observation, b: Observation) -> bool:
         and np.array_equal(a.mask, b.mask)
         and np.array_equal(a.ids, b.ids)
         and a.coords.keys() == b.coords.keys()
-        and all(np.array_equal(a.coords[k], b.coords[k]) for k in a.coords)
+        and all(
+            np.array_equal(a.coords[k], b.coords[k], equal_nan=True) for k in a.coords
+        )
         and a.meta == b.meta
     ):
         return False
