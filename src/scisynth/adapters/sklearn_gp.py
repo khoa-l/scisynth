@@ -5,8 +5,9 @@ Optional dependencies must be imported lazily inside methods, not at module leve
 
 from __future__ import annotations
 
+from ..core._unimplemented import Unimplemented
 from ..latent.base import LatentGenerator
 
 
-class GPField(LatentGenerator):
+class GPField(Unimplemented, LatentGenerator):
     """Field sampled from a scikit-learn Gaussian process. Not implemented yet."""

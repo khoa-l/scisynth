@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import reduce
-from typing import Any, ClassVar
+from typing import ClassVar
 
 import numpy as np
 
 from ..core._types import FloatArray
+from ..core._unimplemented import Unimplemented
 from ..core.domain import Domain
 from .base import FieldLatent, FieldOps, Kind, LatentPlotMixin
 
@@ -83,11 +84,8 @@ class Product(_FieldComposite):
         return out
 
 
-class Warp(LatentPlotMixin):
+class Warp(Unimplemented, LatentPlotMixin):
     """Evaluate a latent through a coordinate transform. Not implemented yet."""
-
-    def __init__(self, latent: FieldLatent, mapping: Any) -> None:
-        raise NotImplementedError
 
 
 class Multichannel(LatentPlotMixin):

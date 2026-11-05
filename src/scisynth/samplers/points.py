@@ -9,6 +9,7 @@ from typing import Any, ClassVar, cast
 import numpy as np
 
 from ..core._numbers import as_int
+from ..core._unimplemented import Unimplemented
 from ..core.observation import Observation
 from ..core.params import Param
 from ..latent.base import FieldLatent, Kind, Latent
@@ -63,7 +64,7 @@ class PointSampler(Sampler):
         )
 
 
-class JitteredSampler(Sampler):
+class JitteredSampler(Unimplemented, Sampler):
     """Regular grid with random per-point jitter. Not implemented yet."""
 
     accepts: ClassVar[frozenset[Kind]] = frozenset({"field"})

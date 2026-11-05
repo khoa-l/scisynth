@@ -5,10 +5,11 @@ Optional dependencies must be imported lazily inside methods, not at module leve
 
 from __future__ import annotations
 
+from ..core._unimplemented import Unimplemented
 from ..latent.base import LatentGenerator
 
 
-class SklearnDataCatalog(LatentGenerator):
+class SklearnDataCatalog(Unimplemented, LatentGenerator):
     """Catalog made with a scikit-learn data generator, such as ``make_blobs``.
 
     Not implemented yet.

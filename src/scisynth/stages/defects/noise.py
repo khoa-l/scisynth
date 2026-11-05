@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 
+from ...core._unimplemented import Unimplemented
 from ...core.observation import Observation
 from ...core.params import Param
 from ..base import Stage
@@ -93,9 +94,9 @@ class PoissonNoise(Stage):
         return obs.replace(values=np.where(obs.valid, counts / scale, obs.values))
 
 
-class UniformNoise(Stage):
+class UniformNoise(Unimplemented, Stage):
     """Additive uniform noise. Not implemented yet."""
 
 
-class MultiplicativeNoise(Stage):
+class MultiplicativeNoise(Unimplemented, Stage):
     """Multiplicative noise, ``values * (1 + eps)``. Not implemented yet."""

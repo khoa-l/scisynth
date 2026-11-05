@@ -5,12 +5,13 @@ Optional dependencies must be imported lazily inside methods, not at module leve
 
 from __future__ import annotations
 
+from ..core._unimplemented import Unimplemented
 from ..latent.base import LatentGenerator
 
 
-class DistributionField(LatentGenerator):
+class DistributionField(Unimplemented, LatentGenerator):
     """Field whose values follow a scipy distribution. Not implemented yet."""
 
 
-class DistributionCatalog(LatentGenerator):
+class DistributionCatalog(Unimplemented, LatentGenerator):
     """Catalog whose attributes follow scipy distributions. Not implemented yet."""

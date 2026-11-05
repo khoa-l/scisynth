@@ -13,6 +13,7 @@ from scipy import sparse
 from ...core._coords import has_position
 from ...core._numbers import as_int
 from ...core._types import Array, BoolArray
+from ...core._unimplemented import Unimplemented
 from ...core.observation import Observation
 from ...core.params import Param
 from .._checks import per_axis, placed
@@ -164,5 +165,5 @@ class Downsample(Stage):
         return _average(bins, math.prod(shape), before.mask)
 
 
-class Regrid(Stage):
+class Regrid(Unimplemented, Stage):
     """Resample onto a new grid. Not implemented yet."""

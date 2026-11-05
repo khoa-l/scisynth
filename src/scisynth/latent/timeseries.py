@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
+from ..core._unimplemented import Unimplemented
 from ..core.domain import Domain
 from .base import Kind, LatentGenerator, LatentPlotMixin
 
 
-class TimeSeriesLatent(LatentPlotMixin):
+class TimeSeriesLatent(Unimplemented, LatentPlotMixin):
     """A 1-D series over a time axis, queryable at any time. Not implemented yet."""
 
     kind: ClassVar[Kind] = "field"
     domain: Domain
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        raise NotImplementedError
 
-
-class OrnsteinUhlenbeck(LatentGenerator):
+class OrnsteinUhlenbeck(Unimplemented, LatentGenerator):
     """Generator for Ornstein-Uhlenbeck process realizations. Not implemented yet."""

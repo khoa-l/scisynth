@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
+from ..core._unimplemented import Unimplemented
 from ..core.domain import Domain
 from .base import Kind, LatentPlotMixin
 
 
-class DatasetLatent(LatentPlotMixin):
+class DatasetLatent(Unimplemented, LatentPlotMixin):
     """Tabular data that can be selected or binned. Not implemented yet."""
 
     kind: ClassVar[Kind] = "dataset"
     domain: Domain
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        raise NotImplementedError

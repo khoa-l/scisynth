@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 
+from ...core._unimplemented import Unimplemented
 from ...core.observation import Observation
 from ...core.params import Param
 from ..base import Stage
@@ -48,9 +49,9 @@ class RandomDropout(Stage):
         )
 
 
-class BlockGaps(Stage):
+class BlockGaps(Unimplemented, Stage):
     """Contiguous blocks of missing data. Not implemented yet."""
 
 
-class RegionMask(Stage):
+class RegionMask(Unimplemented, Stage):
     """Mask out entries inside given regions. Not implemented yet."""
