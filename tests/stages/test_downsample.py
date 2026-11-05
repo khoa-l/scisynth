@@ -11,6 +11,7 @@ from scisynth import (
     PointSampler,
     PositionJitter,
     RandomDropout,
+    RandomInsertion,
 )
 from scisynth.testing.invariants import check_observation
 
@@ -143,6 +144,32 @@ def test_multichannel_and_one_axis() -> None:
     out = Downsample(3)(obs, rng())
     assert np.allclose(out.values, [[2.0, 3.0], [8.0, 9.0]])
     assert out.coords["t"].tolist() == [1.0, 4.0]
+
+
+def widest_bin(before: Observation, after: Observation, factor: int) -> float:
+    """Return the largest x range covered by the inputs of one output location."""
+    links = Downsample(factor).links_from(before, after, {"factor": factor})
+    x = before.to_points().coords["x"]
+    return max(float(np.ptp(x[links[i].indices])) for i in range(after.size))
+
+
+def test_1d_points_are_binned_by_position(line: AnalyticField) -> None:
+    obs = PointSampler(1000)(line, rng())  # unsorted x on [0, 1]
+    out = Downsample(10)(obs, rng())
+    check_observation(out)
+    assert obs.layout == "points"
+    assert out.layout == "grid"  # one output per bin, in order along x
+    assert widest_bin(obs, out, 10) < 0.15  # about 10 bins of width 0.1
+
+
+def test_points_inserted_into_a_1d_grid_are_binned_by_position(
+    line: AnalyticField,
+) -> None:
+    observer = Observer(GridSampler(100), [RandomInsertion(50), Downsample(10)])
+    trace = observer.trace(line, 0)
+    check_observation(trace[-1])
+    assert trace[1].layout == "points"  # the inserted points break the order
+    assert widest_bin(trace[1], trace[2], 10) < 0.15
 
 
 def test_round_trips_through_a_dict() -> None:

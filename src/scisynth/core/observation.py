@@ -60,7 +60,9 @@ class Observation:
         layout.
     layout : {"grid", "points"}
         ``"grid"`` if the coordinates are one 1-D array per spatial axis, else
-        ``"points"``. A 1-D observation fits both and counts as a grid.
+        ``"points"``. A 1-D observation has the same shapes either way, so it is a
+        grid only if its coordinate is strictly increasing or decreasing:
+        neighbors in storage order must be neighbors in space.
     plot_subjects, plot_kinds : tuple of str
         What :func:`scisynth.viz.plot` draws it as: the subject ``"observation"`` in
         the kinds ``"scatter"`` (the default) and ``"heatmap"``. Both are for 2-D
@@ -127,6 +129,11 @@ class Observation:
         is_grid = len(coords) == len(spatial) and all(
             c.ndim == 1 and c.shape[0] == spatial[i] for i, c in enumerate(coords)
         )
+        if is_grid and len(spatial) == 1:
+            # Unsorted (or NaN) coordinates are a list of points, e.g. a 1-D
+            # PointSampler or a grid with points inserted at the end.
+            step = np.diff(coords[0])
+            is_grid = bool(np.all(step > 0) or np.all(step < 0))
         return "grid" if is_grid else "points"
 
     def to_points(self) -> Observation:

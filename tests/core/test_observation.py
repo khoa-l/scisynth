@@ -55,6 +55,23 @@ def test_layout_ignores_the_channel_axis() -> None:
     check_observation(pts)
 
 
+@pytest.mark.parametrize(
+    ("x", "layout"),
+    [
+        ([0.0, 1.0, 2.0, 3.0], "grid"),
+        ([3.0, 2.0, 1.0, 0.0], "grid"),  # decreasing is still ordered
+        ([0.0, 2.0, 1.0, 3.0], "points"),  # unsorted: neighbors are not adjacent
+        ([0.0, 1.0, 1.0, 2.0], "points"),  # repeated position
+        ([0.0, np.nan, 2.0, 3.0], "points"),  # a location without a position
+    ],
+)
+def test_a_1d_observation_is_a_grid_only_if_its_coordinate_is_ordered(
+    x: list[float], layout: str
+) -> None:
+    obs = Observation(np.zeros((4, 1)), {"x": np.array(x)}, np.ones(4, bool))
+    assert obs.layout == layout
+
+
 def test_invariants_reject_a_mask_with_a_channel_axis() -> None:
     obs = grid_obs()
     bad = obs.replace(mask=np.ones(obs.shape, bool))
