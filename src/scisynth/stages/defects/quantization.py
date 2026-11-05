@@ -25,7 +25,9 @@ class Quantize(Stage):
     vmin, vmax : float or array-like, optional
         Range covered by the levels. By default it is the range of the valid data,
         taken per channel. Values outside are clipped to the end levels. Give one
-        value per channel to set per-channel ranges.
+        value per channel to set per-channel ranges. If only one is given, the
+        other comes from the data but never crosses it, so a ``vmin`` above all the
+        data puts every value on ``vmin``.
 
     Raises
     ------
@@ -34,8 +36,9 @@ class Quantize(Stage):
 
     Notes
     -----
-    The result stays float: the level values, not integer codes. A channel whose
-    data range is empty is left unchanged. It uses no randomness.
+    The result stays float: the level values, not integer codes. A range of zero
+    width is a single level, so a constant channel is left unchanged. It uses no
+    randomness.
     """
 
     levels: Param = 256
@@ -72,20 +75,18 @@ class Quantize(Stage):
         valid = obs.values[obs.mask]  # (n_valid, d)
         if valid.shape[0] == 0:
             return obs.replace()
-        lo = (
-            valid.min(axis=0)
-            if params["vmin"] is None
-            else np.asarray(params["vmin"], float)
-        )
-        hi = (
-            valid.max(axis=0)
-            if params["vmax"] is None
-            else np.asarray(params["vmax"], float)
-        )
-        flat = hi <= lo
+        lo, hi = valid.min(axis=0), valid.max(axis=0)
+        # A bound taken from the data never crosses a bound that was given.
+        if params["vmin"] is not None:
+            lo = np.asarray(params["vmin"], float)
+            hi = np.maximum(hi, lo)
+        if params["vmax"] is not None:
+            hi = np.asarray(params["vmax"], float)
+            lo = np.minimum(lo, hi)
+        flat = hi <= lo  # a single level, at lo
         step = np.where(flat, 1.0, (hi - lo) / (levels - 1))
         codes = np.clip(np.round((obs.values - lo) / step), 0, levels - 1)
-        quantized = np.where(flat, obs.values, lo + codes * step)
+        quantized = np.where(flat, lo, lo + codes * step)
         return obs.replace(values=np.where(obs.valid, quantized, obs.values))
 
 

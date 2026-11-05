@@ -110,6 +110,23 @@ def test_quantize_explicit_range_clips_and_keeps_mask() -> None:
     assert np.array_equal(out.mask, mask)
 
 
+def test_quantize_one_bound_beyond_the_data_clips_everything_to_it() -> None:
+    data = obs(np.array([0.0, 1.0, 2.0, 3.0]))
+    assert np.all(Quantize(4, vmin=5.0)(data, rng()).values == 5.0)
+    assert np.all(Quantize(4, vmax=-1.0)(data, rng()).values == -1.0)
+    # one bound inside the data: the other end still comes from the data
+    out = Quantize(4, vmin=1.5)(data, rng())  # levels 1.5, 2.0, 2.5, 3.0
+    assert out.values[:, 0].tolist() == [1.5, 1.5, 2.0, 3.0]
+
+
+def test_quantize_bound_beyond_the_data_per_channel() -> None:
+    values = np.stack([np.linspace(0, 1, 5), np.linspace(10, 11, 5)], axis=1)
+    two = Observation(values, {"x": np.arange(5.0)}, np.ones(5, bool))
+    out = Quantize(3, vmin=[0.0, 20.0])(two, rng())
+    assert np.allclose(np.unique(out.values[:, 0]), [0.0, 0.5, 1.0])
+    assert np.all(out.values[:, 1] == 20.0)
+
+
 def test_quantize_degenerate_inputs() -> None:
     const = obs(np.full(4, 2.0))
     assert np.array_equal(Quantize()(const, rng()).values, const.values)
