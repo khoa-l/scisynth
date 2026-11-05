@@ -145,12 +145,12 @@ def widest_bin(before: Observation, after: Observation, factor: int) -> float:
 
 
 def test_1d_points_are_binned_by_position(line: AnalyticField) -> None:
-    obs = PointSampler(1000)(line, rng())  # unsorted x on [0, 1]
+    obs = PointSampler(1000)(line, rng())
     out = Downsample(10)(obs, rng())
     check_observation(out)
     assert obs.layout == "points"
-    assert out.layout == "grid"  # one output per bin, in order along x
-    assert widest_bin(obs, out, 10) < 0.15  # about 10 bins of width 0.1
+    assert out.layout == "grid"
+    assert widest_bin(obs, out, 10) < 0.15
 
 
 def test_points_without_a_position_are_ignored(field: AnalyticField) -> None:

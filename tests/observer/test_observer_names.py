@@ -56,7 +56,7 @@ def test_names_survive_a_dict_round_trip_and_unnamed_dicts_are_named() -> None:
         Observer(("grid", GridSampler(4)), [GaussianNoise(), GaussianNoise()]),
     ):
         restored = Observer.from_dict(json.loads(json.dumps(o.to_dict())))
-        assert restored == o  # equality includes the names
+        assert restored == o
     data = {
         "sampler": GridSampler(4).to_dict(),
         "stages": [

@@ -25,7 +25,6 @@ from scisynth import (
 )
 from scisynth.latent.base import Kind
 
-# One instance of every implemented stage, for the checks every stage must pass.
 STAGES: list[Stage] = [
     GaussianNoise(0.3),
     PoissonNoise(2.0),

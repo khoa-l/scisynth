@@ -25,7 +25,6 @@ from scisynth import (
 from scisynth.stages.demo import smooth_grid
 from scisynth.testing.invariants import check_observation, observations_equal
 
-# Stages that change values only: locations, mask, ids and truth are kept.
 VALUE_STAGES: list[Stage] = [
     GaussianNoise(0.3),
     PoissonNoise(2.0),
@@ -47,7 +46,7 @@ def test_a_stage_keeps_its_input_and_returns_a_valid_observation(stage: Stage) -
     obs = with_gaps(stage)
     before = copy.deepcopy(obs)
     out = stage.run(obs, 2)
-    assert observations_equal(obs, before)  # the input is not mutated
+    assert observations_equal(obs, before)
     check_observation(out)
     assert out.meta[:-1] == obs.meta and out.meta[-1]["type"] == type(stage).__name__
     assert observations_equal(stage.run(obs, 2), out)
@@ -68,4 +67,4 @@ def test_a_distribution_is_drawn_once_per_call_and_logged() -> None:
     out = ValueOffset(stats.norm(0, 1)).run(obs, 3)
     drawn = out.meta[-1]["params"]["value"]
     assert isinstance(drawn, float)
-    assert np.allclose(out.values - obs.values, drawn)  # shared by every location
+    assert np.allclose(out.values - obs.values, drawn)

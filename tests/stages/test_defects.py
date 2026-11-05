@@ -65,8 +65,8 @@ def test_random_dropout_extremes_and_validation() -> None:
 def test_dropout_only_adds_to_what_is_already_dropped() -> None:
     gaps = obs(np.ones(1000), np.arange(1000) % 4 != 0)
     low, high = RandomDropout(0.1)(gaps, rng(5)), RandomDropout(0.5)(gaps, rng(5))
-    assert not (low.mask & ~gaps.mask).any()  # masked locations stay masked
-    assert not (high.mask & ~low.mask).any()  # dropped at a low p, dropped at a high p
+    assert not (low.mask & ~gaps.mask).any()
+    assert not (high.mask & ~low.mask).any()
 
 
 def test_quantize_levels_and_range() -> None:
@@ -89,8 +89,7 @@ def test_quantize_one_bound_beyond_the_data_clips_everything_to_it() -> None:
     data = obs(np.array([0.0, 1.0, 2.0, 3.0]))
     assert np.all(Quantize(4, vmin=5.0)(data, rng()).values == 5.0)
     assert np.all(Quantize(4, vmax=-1.0)(data, rng()).values == -1.0)
-    # one bound inside the data: the other end still comes from the data
-    out = Quantize(4, vmin=1.5)(data, rng())  # levels 1.5, 2.0, 2.5, 3.0
+    out = Quantize(4, vmin=1.5)(data, rng())
     assert out.values[:, 0].tolist() == [1.5, 1.5, 2.0, 3.0]
 
 

@@ -76,14 +76,13 @@ class Quantize(Stage):
         if valid.shape[0] == 0:
             return obs.replace()
         lo, hi = valid.min(axis=0), valid.max(axis=0)
-        # A bound taken from the data never crosses a bound that was given.
         if params["vmin"] is not None:
             lo = np.asarray(params["vmin"], float)
             hi = np.maximum(hi, lo)
         if params["vmax"] is not None:
             hi = np.asarray(params["vmax"], float)
             lo = np.minimum(lo, hi)
-        flat = hi <= lo  # a single level, at lo
+        flat = hi <= lo
         step = np.where(flat, 1.0, (hi - lo) / (levels - 1))
         codes = np.clip(np.round((obs.values - lo) / step), 0, levels - 1)
         quantized = np.where(flat, lo, lo + codes * step)
@@ -122,6 +121,8 @@ class Clip(Stage):
         self, obs: Observation, rng: np.random.Generator, params: Mapping[str, Any]
     ) -> Observation:
         lo, hi = params["lo"], params["hi"]
+        if lo is None and hi is None:
+            return obs.replace()
         if (
             lo is not None
             and hi is not None

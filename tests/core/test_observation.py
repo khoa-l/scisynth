@@ -58,10 +58,10 @@ def test_layout_ignores_the_channel_axis() -> None:
     ("x", "layout"),
     [
         ([0.0, 1.0, 2.0, 3.0], "grid"),
-        ([3.0, 2.0, 1.0, 0.0], "grid"),  # decreasing is still ordered
-        ([0.0, 2.0, 1.0, 3.0], "points"),  # unsorted: neighbors are not adjacent
-        ([0.0, 1.0, 1.0, 2.0], "points"),  # repeated position
-        ([0.0, np.nan, 2.0, 3.0], "points"),  # a location without a position
+        ([3.0, 2.0, 1.0, 0.0], "grid"),
+        ([0.0, 2.0, 1.0, 3.0], "points"),
+        ([0.0, 1.0, 1.0, 2.0], "points"),
+        ([0.0, np.nan, 2.0, 3.0], "points"),
     ],
 )
 def test_a_1d_observation_is_a_grid_only_if_its_coordinate_is_ordered(

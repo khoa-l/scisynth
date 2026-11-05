@@ -45,7 +45,6 @@ def test_run_does_not_use_global_random_state(field: AnalyticField) -> None:
 def test_adding_a_stage_does_not_change_existing_stages(field: AnalyticField) -> None:
     o = observer()
     assert_append_stable(o, GaussianNoise(0.5), field, seed=4)
-    # a stage that changes the locations, and one after it
     assert_append_stable(o, RandomInsertion(5), field, seed=4)
     longer = o.with_stages([*o.stages.items(), Downsample(2)])
     assert_append_stable(longer, PositionJitter(0.05), field, seed=4)

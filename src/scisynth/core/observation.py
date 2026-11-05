@@ -130,8 +130,6 @@ class Observation:
             c.ndim == 1 and c.shape[0] == spatial[i] for i, c in enumerate(coords)
         )
         if is_grid and len(spatial) == 1:
-            # Unsorted (or NaN) coordinates are a list of points, e.g. a 1-D
-            # PointSampler or a grid with points inserted at the end.
             step = np.diff(coords[0])
             is_grid = bool(np.all(step > 0) or np.all(step < 0))
         return "grid" if is_grid else "points"

@@ -44,7 +44,6 @@ def test_clip_rejects_lo_above_hi() -> None:
 
 
 def test_saturate_is_ceiling_times_tanh() -> None:
-    # tanh makes it odd, monotonic and slope 1 at zero; only the formula is checked
     v = np.array([-100.0, -2.0, -0.5, 0.0, 0.5, 2.0, 100.0])
     values = Saturate(3.0)(obs_of(v.tolist()), rng()).values[:, 0]
     assert np.allclose(values, 3.0 * np.tanh(v / 3.0))
