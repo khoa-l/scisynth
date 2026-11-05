@@ -37,7 +37,7 @@ def imported_subpackages(path: Path) -> set[str]:
     parts = ["scisynth", *path.relative_to(SRC).with_suffix("").parts]
     package = parts[:-1]
     found = set()
-    for node in ast.walk(ast.parse(path.read_text())):
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
         if isinstance(node, ast.ImportFrom) and node.level:
             base = package[: len(package) - node.level + 1]
             target = [*base, *(node.module.split(".") if node.module else [])]
@@ -59,7 +59,9 @@ def test_subpackages_only_import_the_ones_below_them() -> None:
             continue  # the top level re-exports from everywhere
         imported = imported_subpackages(path) - {who, "viz"}
         extra = (
-            imported - ALLOWED[who] - EXCEPTIONS.get(str(path.relative_to(SRC)), set())
+            imported
+            - ALLOWED[who]
+            - EXCEPTIONS.get(path.relative_to(SRC).as_posix(), set())
         )
         if extra:
             problems.append(f"{path.relative_to(SRC)} imports {sorted(extra)}")
@@ -72,7 +74,7 @@ def test_only_the_viz_modules_import_viz_at_the_top_of_a_file() -> None:
     for path in sorted(SRC.rglob("*.py")):
         if owner(path) in {"viz", "__init__"}:
             continue
-        for node in ast.parse(path.read_text()).body:  # top level only
+        for node in ast.parse(path.read_text(encoding="utf-8")).body:  # top level only
             if isinstance(node, ast.ImportFrom) and node.level:
                 module = node.module or ""
                 if module.split(".")[0] == "viz" or (
