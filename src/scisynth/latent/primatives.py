@@ -12,7 +12,7 @@ from ..core._grid import as_shape
 # Note: current application method assumes single-channel data is being applied
 # if a multi-channel latent is passed in, only the first channel will be used.
 def apply_mask(
-        mask: InterpolatedField,
+        mask: FieldLatent,
         inside: FieldLatent,
         outside: FieldLatent
 ) -> AnalyticField:
@@ -28,7 +28,7 @@ def apply_mask(
     return AnalyticField(apply, mask.domain)
 
 def flatten_masks(
-            masks: list[InterpolatedField],
+            masks: list[FieldLatent],
             add: bool = True
 ) -> AnalyticField:
         if not masks or len(masks) < 2:
@@ -130,3 +130,15 @@ def rectangle_mask(
 
 
 #TODO: Polygon Mask
+# Apparently ray-casting can be used to determine membership/internality
+# Brush up on ray-casting logic, check efficiency for large vertex lists
+
+#TODO: Polygon can use to partition (line separation)
+
+#TODO: Post-Processing:
+# Shear and Shift
+# Asymmetric Blur and Erosion
+# - contextualized by effected shape
+# Localized Variances
+
+#TODO: Build the UI
