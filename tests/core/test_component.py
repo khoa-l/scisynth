@@ -6,12 +6,14 @@ from scipy import stats
 
 from scisynth import (
     Domain,
+    GaussianBumps,
     GaussianField,
     GaussianNoise,
     GridSampler,
     PointSampler,
     Sampler,
     Stage,
+    VoronoiRegions,
 )
 from scisynth.core import registry
 from scisynth.core.component import Component
@@ -74,6 +76,8 @@ def test_every_stage_round_trips_through_json(stage: Stage) -> None:
         PointSampler(10),
         Domain.from_extents([(0, 1), (0, 2)], units=["m", "s"], value_unit="K"),
         GaussianField(Domain.from_extents([(0, 1)]), 0.2, resolution=16, order=3),
+        GaussianBumps(Domain.from_extents([(0, 1)]), count=3, width=0.2),
+        VoronoiRegions(Domain.from_extents([(0, 1)]), count=4),
     ],
     ids=lambda component: type(component).__name__,
 )

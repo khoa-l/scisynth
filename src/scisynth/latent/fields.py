@@ -294,7 +294,8 @@ class BumpField(FieldOps):
     >>> from scisynth.core import Domain
     >>> from scisynth.latent import BumpField
     >>> domain = Domain.from_extents([(0, 10), (0, 10)])
-    >>> bumps = BumpField([[2, 3], [7, 5]], [0.5, 1.0], [1.0, 2.0], domain)
+    >>> centers = np.array([[2.0, 3.0], [7.0, 5.0]])
+    >>> bumps = BumpField(centers, np.array([0.5, 1.0]), np.array([1.0, 2.0]), domain)
     >>> bumps.evaluate(np.array([[7.0, 5.0]])).round(3)
     array([[2.]])
     """
@@ -430,7 +431,8 @@ class RegionField(FieldOps):
     >>> from scisynth.core import Domain
     >>> from scisynth.latent import RegionField
     >>> domain = Domain.from_extents([(0, 10), (0, 10)])
-    >>> regions = RegionField([[2, 2], [8, 8]], [1.0, 5.0], domain)
+    >>> sites = np.array([[2.0, 2.0], [8.0, 8.0]])
+    >>> regions = RegionField(sites, np.array([1.0, 5.0]), domain)
     >>> regions.evaluate(np.array([[1.0, 3.0], [9.0, 6.0]]))
     array([[1.],
            [5.]])

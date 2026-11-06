@@ -114,34 +114,41 @@ def test_gaussian_field_refuses_an_oversized_grid_before_allocating() -> None:
     assert f.evaluate(np.full((2, 5), 0.5)).shape == (2, 1)
 
 
+def inside(points: NDArray[Any], domain: Domain) -> bool:
+    lo, hi = np.array(domain.extents).T
+    return bool(np.all((points >= lo) & (points <= hi)))
+
+
 def test_bump_field_peaks_at_its_centers_and_falls_off_by_width() -> None:
-    f = BumpField([[0.2], [0.8]], [0.05, 0.1], [1.0, 3.0], line_domain())
+    f = BumpField(
+        np.array([[0.2], [0.8]]),
+        np.array([0.05, 0.1]),
+        np.array([1.0, 3.0]),
+        line_domain(),
+    )
     assert f.kind == "field"
     out = f.evaluate(np.array([[0.2], [0.8], [0.9], [0.5]]))[:, 0]
-    assert out[0] == pytest.approx(1.0, abs=1e-6)
-    assert out[1] == pytest.approx(3.0, abs=1e-6)
-    assert out[2] == pytest.approx(3.0 * np.exp(-0.5), abs=1e-6)
+    assert np.allclose(out[:3], [1.0, 3.0, 3.0 * np.exp(-0.5)])
     assert out[3] < 0.1
 
 
 def test_bump_field_with_no_bumps_is_zero(domain: Domain) -> None:
-    f = BumpField(np.empty((0, 2)), [], [], domain)
+    f = BumpField(np.empty((0, 2)), np.empty(0), np.empty(0), domain)
     assert np.array_equal(f.evaluate(np.zeros((3, 2))), np.zeros((3, 1)))
 
 
 def test_bump_field_validates_its_arrays(domain: Domain) -> None:
     with pytest.raises(ValueError, match=r"shape \(2,\)"):
-        BumpField([[0, 0], [1, 1]], [0.1], [1.0, 1.0], domain)
+        BumpField(np.zeros((2, 2)), np.full(1, 0.1), np.ones(2), domain)
     with pytest.raises(ValueError, match="widths must be > 0"):
-        BumpField([[0, 0]], [0.0], [1.0], domain)
+        BumpField(np.zeros((1, 2)), np.zeros(1), np.ones(1), domain)
 
 
 def test_gaussian_bumps_places_count_bumps_inside_the_domain(domain: Domain) -> None:
     f = GaussianBumps(domain, count=50).realize(0)
     assert isinstance(f, BumpField)
     assert f.centers.shape == (50, 2)
-    lo, hi = np.array(domain.extents).T
-    assert np.all((f.centers >= lo) & (f.centers <= hi))
+    assert inside(f.centers, domain)
     assert np.all(f.widths == 0.1) and np.all(f.heights == 1.0)
 
 
@@ -171,7 +178,9 @@ def test_gaussian_bumps_rejects_a_negative_count(domain: Domain) -> None:
 
 
 def test_region_field_takes_the_value_of_the_nearest_site() -> None:
-    f = RegionField([[0.1], [0.5], [0.9]], [10.0, 20.0, 30.0], line_domain())
+    f = RegionField(
+        np.array([[0.1], [0.5], [0.9]]), np.array([10.0, 20.0, 30.0]), line_domain()
+    )
     assert f.kind == "field"
     pts = np.array([[0.0], [0.29], [0.31], [0.69], [0.71], [1.0]])
     assert np.array_equal(f.region(pts), [0, 0, 1, 1, 2, 2])
@@ -180,17 +189,16 @@ def test_region_field_takes_the_value_of_the_nearest_site() -> None:
 
 def test_region_field_validates_its_arrays(domain: Domain) -> None:
     with pytest.raises(ValueError, match="at least one site"):
-        RegionField(np.empty((0, 2)), [], domain)
+        RegionField(np.empty((0, 2)), np.empty(0), domain)
     with pytest.raises(ValueError, match=r"shape \(2,\)"):
-        RegionField([[0, 0], [1, 1]], [1.0], domain)
+        RegionField(np.zeros((2, 2)), np.ones(1), domain)
 
 
 def test_voronoi_regions_default_to_a_label_map(domain: Domain) -> None:
     f = VoronoiRegions(domain, count=5).realize(0)
     assert isinstance(f, RegionField)
     assert f.sites.shape == (5, 2)
-    lo, hi = np.array(domain.extents).T
-    assert np.all((f.sites >= lo) & (f.sites <= hi))
+    assert inside(f.sites, domain)
     assert np.array_equal(f.values, np.arange(5))
     assert np.array_equal(f.evaluate(f.sites)[:, 0], np.arange(5))
 
