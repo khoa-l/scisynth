@@ -8,10 +8,11 @@ from typing import Any, ClassVar
 
 import numpy as np
 from scipy import ndimage
+from scipy.spatial import KDTree
 
 from ..core._grid import as_shape, check_cells
 from ..core._numbers import as_int
-from ..core._types import FloatArray
+from ..core._types import FloatArray, IntArray
 from ..core.domain import Domain
 from ..core.params import Param, resolve
 from ..core.rng import SeedLike, spawn_rngs
@@ -255,6 +256,12 @@ def _draw_each(param: Param, rng: np.random.Generator, n: int) -> FloatArray:
     return np.array([resolve(param, rng) for _ in range(n)], dtype=np.float64)
 
 
+def _uniform_points(domain: Domain, n: int, rng: np.random.Generator) -> FloatArray:
+    """Draw ``n`` points uniformly over ``domain``."""
+    lo, hi = np.array(domain.extents).T
+    return rng.uniform(lo, hi, size=(n, domain.ndim))
+
+
 @dataclass
 class BumpField(FieldOps):
     """A sum of round Gaussian bumps.
@@ -385,10 +392,155 @@ class GaussianBumps(LatentGenerator):
         n = as_int(resolve(self.count, param_rng), "count")
         if n < 0:
             raise ValueError(f"count must be >= 0, got {n}")
-        lo, hi = np.array(self.domain.extents).T
         return BumpField(
-            place_rng.uniform(lo, hi, size=(n, self.domain.ndim)),
+            _uniform_points(self.domain, n, place_rng),
             _draw_each(self.width, param_rng, n),
             _draw_each(self.height, param_rng, n),
             self.domain,
+        )
+
+
+@dataclass
+class RegionField(FieldOps):
+    """A piecewise-constant field: each point takes the value of its nearest site.
+
+    Parameters
+    ----------
+    sites : ndarray of shape (n, ndim)
+        One site per region; there must be at least one.
+    values : ndarray of shape (n,)
+        The value inside each region.
+    domain : Domain
+        The space the field lives in.
+
+    Raises
+    ------
+    ValueError
+        If there are no sites or ``values`` does not have one entry per site.
+
+    Notes
+    -----
+    The field has one channel. The regions are the Voronoi cells of the sites, by
+    Euclidean distance, and do not wrap around the domain. A point equally close to
+    two sites may fall in either region.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scisynth.core import Domain
+    >>> from scisynth.latent import RegionField
+    >>> domain = Domain.from_extents([(0, 10), (0, 10)])
+    >>> regions = RegionField([[2, 2], [8, 8]], [1.0, 5.0], domain)
+    >>> regions.evaluate(np.array([[1.0, 3.0], [9.0, 6.0]]))
+    array([[1.],
+           [5.]])
+    """
+
+    sites: FloatArray
+    values: FloatArray
+    domain: Domain
+    kind: ClassVar[Kind] = "field"
+
+    def __post_init__(self) -> None:
+        self.sites = np.asarray(self.sites, dtype=np.float64).reshape(
+            -1, self.domain.ndim
+        )
+        self.values = np.asarray(self.values, dtype=np.float64)
+        n = len(self.sites)
+        if n == 0:
+            raise ValueError("RegionField needs at least one site")
+        if self.values.shape != (n,):
+            raise ValueError(f"values must have shape ({n},), got {self.values.shape}")
+        self._tree = KDTree(self.sites)
+
+    def region(self, points: FloatArray) -> IntArray:
+        """Return the region each point falls in.
+
+        Parameters
+        ----------
+        points : ndarray of shape (n, ndim)
+            Query points, one row per point.
+
+        Returns
+        -------
+        ndarray of shape (n,)
+            Indices into ``sites``.
+        """
+        index: IntArray = self._tree.query(points)[1]
+        return index
+
+    def evaluate(self, points: FloatArray) -> FloatArray:
+        """Evaluate at ``points``.
+
+        Parameters
+        ----------
+        points : ndarray of shape (n, ndim)
+            Query points, one row per point.
+
+        Returns
+        -------
+        ndarray of shape (n, 1)
+            The value of the region each point falls in.
+        """
+        return self.values[self.region(points)][:, None]
+
+
+@dataclass
+class VoronoiRegions(LatentGenerator):
+    """Split the domain into regions around uniformly scattered sites.
+
+    Parameters
+    ----------
+    domain : Domain
+        The space the field lives in.
+    count : int or distribution, default=10
+        Number of regions, drawn once per realization. Must be at least 1.
+    value : float or distribution, optional
+        The value inside a region. A distribution gives a separate draw for each
+        region. By default each region holds its index, so the field is a label map.
+
+    Examples
+    --------
+    >>> from scipy import stats
+    >>> from scisynth.core import Domain
+    >>> from scisynth.latent import VoronoiRegions
+    >>> domain = Domain.from_extents([(0, 10), (0, 10)])
+    >>> regions = VoronoiRegions(domain, count=4, value=stats.norm())
+    >>> regions.realize(seed=0).sites.shape
+    (4, 2)
+    """
+
+    domain: Domain
+    count: Param = 10
+    value: Param | None = None
+
+    def realize(self, seed: SeedLike = None) -> RegionField:
+        """Draw one realization.
+
+        Parameters
+        ----------
+        seed : int, SeedSequence or None, default=None
+            Seed for the random streams; None draws fresh OS entropy.
+
+        Returns
+        -------
+        RegionField
+            The regions, with their sites and values.
+
+        Raises
+        ------
+        ValueError
+            If ``count`` is less than 1.
+        """
+        param_rng, place_rng = spawn_rngs(seed, 2)
+        n = as_int(resolve(self.count, param_rng), "count")
+        if n < 1:
+            raise ValueError(f"count must be >= 1, got {n}")
+        values = (
+            np.arange(n, dtype=np.float64)
+            if self.value is None
+            else _draw_each(self.value, param_rng, n)
+        )
+        return RegionField(
+            _uniform_points(self.domain, n, place_rng), values, self.domain
         )

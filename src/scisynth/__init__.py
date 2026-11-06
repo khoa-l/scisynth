@@ -14,7 +14,9 @@ from .latent import (
     LatentGenerator,
     Multichannel,
     Product,
+    RegionField,
     Sum,
+    VoronoiRegions,
 )
 from .observer import Observer, StageDiff, StageList, Trace
 from .projection import Projection
@@ -71,6 +73,7 @@ __all__ = [
     "Quantize",
     "RandomDropout",
     "RandomInsertion",
+    "RegionField",
     "Sampler",
     "Saturate",
     "Stage",
@@ -79,6 +82,7 @@ __all__ = [
     "Sum",
     "Trace",
     "ValueOffset",
+    "VoronoiRegions",
     "__version__",
     "resolve",
     "spawn_rngs",

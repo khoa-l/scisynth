@@ -10,3 +10,4 @@ from numpy.typing import NDArray
 Array = NDArray[Any]
 FloatArray = NDArray[np.float64]
 BoolArray = NDArray[np.bool_]
+IntArray = NDArray[np.intp]

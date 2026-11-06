@@ -12,6 +12,8 @@ from scisynth import (
     GaussianBumps,
     GaussianField,
     InterpolatedField,
+    RegionField,
+    VoronoiRegions,
 )
 
 
@@ -166,3 +168,47 @@ def test_gaussian_bumps_is_reproducible(domain: Domain) -> None:
 def test_gaussian_bumps_rejects_a_negative_count(domain: Domain) -> None:
     with pytest.raises(ValueError, match="count must be >= 0"):
         GaussianBumps(domain, count=-1).realize(0)
+
+
+def test_region_field_takes_the_value_of_the_nearest_site() -> None:
+    f = RegionField([[0.1], [0.5], [0.9]], [10.0, 20.0, 30.0], line_domain())
+    assert f.kind == "field"
+    pts = np.array([[0.0], [0.29], [0.31], [0.69], [0.71], [1.0]])
+    assert np.array_equal(f.region(pts), [0, 0, 1, 1, 2, 2])
+    assert np.array_equal(f.evaluate(pts)[:, 0], [10, 10, 20, 20, 30, 30])
+
+
+def test_region_field_validates_its_arrays(domain: Domain) -> None:
+    with pytest.raises(ValueError, match="at least one site"):
+        RegionField(np.empty((0, 2)), [], domain)
+    with pytest.raises(ValueError, match=r"shape \(2,\)"):
+        RegionField([[0, 0], [1, 1]], [1.0], domain)
+
+
+def test_voronoi_regions_default_to_a_label_map(domain: Domain) -> None:
+    f = VoronoiRegions(domain, count=5).realize(0)
+    assert isinstance(f, RegionField)
+    assert f.sites.shape == (5, 2)
+    lo, hi = np.array(domain.extents).T
+    assert np.all((f.sites >= lo) & (f.sites <= hi))
+    assert np.array_equal(f.values, np.arange(5))
+    assert np.array_equal(f.evaluate(f.sites)[:, 0], np.arange(5))
+
+
+def test_voronoi_regions_draw_a_value_per_region(domain: Domain) -> None:
+    f = VoronoiRegions(
+        domain, count=stats.poisson(8, loc=1), value=stats.norm()
+    ).realize(1)
+    assert len(set(f.values)) == len(f.values) > 1
+
+
+def test_voronoi_regions_is_reproducible(domain: Domain) -> None:
+    gen = VoronoiRegions(domain, value=stats.norm())
+    a, b, c = gen.realize(3), gen.realize(3), gen.realize(4)
+    assert np.array_equal(a.sites, b.sites) and np.array_equal(a.values, b.values)
+    assert not np.array_equal(a.sites, c.sites)
+
+
+def test_voronoi_regions_need_at_least_one_region(domain: Domain) -> None:
+    with pytest.raises(ValueError, match="count must be >= 1"):
+        VoronoiRegions(domain, count=0).realize(0)

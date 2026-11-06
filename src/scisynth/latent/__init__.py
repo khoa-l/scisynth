@@ -12,6 +12,8 @@ from .fields import (
     GaussianBumps,
     GaussianField,
     InterpolatedField,
+    RegionField,
+    VoronoiRegions,
 )
 
 __all__ = [
@@ -23,6 +25,8 @@ __all__ = [
     "GaussianField",
     "BumpField",
     "GaussianBumps",
+    "RegionField",
+    "VoronoiRegions",
     "Sum",
     "Product",
     "Multichannel",
