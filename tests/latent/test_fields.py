@@ -3,8 +3,16 @@ from typing import Any
 import numpy as np
 import pytest
 from numpy.typing import NDArray
+from scipy import stats
 
-from scisynth import AnalyticField, Domain, GaussianField, InterpolatedField
+from scisynth import (
+    AnalyticField,
+    BumpField,
+    Domain,
+    GaussianBumps,
+    GaussianField,
+    InterpolatedField,
+)
 
 
 def test_analytic_field_evaluates_with_per_axis_args(domain: Domain) -> None:
@@ -102,3 +110,59 @@ def test_gaussian_field_refuses_an_oversized_grid_before_allocating() -> None:
         GaussianField(five_d, resolution=3, max_cells=100).realize(0)
     f = GaussianField(five_d, length_scale=0.3, resolution=6).realize(0)
     assert f.evaluate(np.full((2, 5), 0.5)).shape == (2, 1)
+
+
+def test_bump_field_peaks_at_its_centers_and_falls_off_by_width() -> None:
+    f = BumpField([[0.2], [0.8]], [0.05, 0.1], [1.0, 3.0], line_domain())
+    assert f.kind == "field"
+    out = f.evaluate(np.array([[0.2], [0.8], [0.9], [0.5]]))[:, 0]
+    assert out[0] == pytest.approx(1.0, abs=1e-6)
+    assert out[1] == pytest.approx(3.0, abs=1e-6)
+    assert out[2] == pytest.approx(3.0 * np.exp(-0.5), abs=1e-6)
+    assert out[3] < 0.1
+
+
+def test_bump_field_with_no_bumps_is_zero(domain: Domain) -> None:
+    f = BumpField(np.empty((0, 2)), [], [], domain)
+    assert np.array_equal(f.evaluate(np.zeros((3, 2))), np.zeros((3, 1)))
+
+
+def test_bump_field_validates_its_arrays(domain: Domain) -> None:
+    with pytest.raises(ValueError, match=r"shape \(2,\)"):
+        BumpField([[0, 0], [1, 1]], [0.1], [1.0, 1.0], domain)
+    with pytest.raises(ValueError, match="widths must be > 0"):
+        BumpField([[0, 0]], [0.0], [1.0], domain)
+
+
+def test_gaussian_bumps_places_count_bumps_inside_the_domain(domain: Domain) -> None:
+    f = GaussianBumps(domain, count=50).realize(0)
+    assert isinstance(f, BumpField)
+    assert f.centers.shape == (50, 2)
+    lo, hi = np.array(domain.extents).T
+    assert np.all((f.centers >= lo) & (f.centers <= hi))
+    assert np.all(f.widths == 0.1) and np.all(f.heights == 1.0)
+
+
+def test_gaussian_bumps_draws_width_and_height_per_bump(domain: Domain) -> None:
+    gen = GaussianBumps(
+        domain,
+        count=stats.poisson(20),
+        width=stats.uniform(0.05, 0.1),
+        height=stats.norm(),
+    )
+    f = gen.realize(0)
+    assert len(set(f.widths)) == len(f.widths) > 1
+    assert len(set(f.heights)) == len(f.heights)
+    assert np.all((f.widths >= 0.05) & (f.widths <= 0.15))
+
+
+def test_gaussian_bumps_is_reproducible(domain: Domain) -> None:
+    gen = GaussianBumps(domain, width=stats.uniform(0.05, 0.1))
+    a, b, c = gen.realize(3), gen.realize(3), gen.realize(4)
+    assert np.array_equal(a.centers, b.centers) and np.array_equal(a.widths, b.widths)
+    assert not np.array_equal(a.centers, c.centers)
+
+
+def test_gaussian_bumps_rejects_a_negative_count(domain: Domain) -> None:
+    with pytest.raises(ValueError, match="count must be >= 0"):
+        GaussianBumps(domain, count=-1).realize(0)

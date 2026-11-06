@@ -6,7 +6,13 @@ Its public names are importable from the package itself, for example
 
 from .base import FieldLatent, Latent, LatentGenerator
 from .compose import Multichannel, Product, Sum
-from .fields import AnalyticField, GaussianField, InterpolatedField
+from .fields import (
+    AnalyticField,
+    BumpField,
+    GaussianBumps,
+    GaussianField,
+    InterpolatedField,
+)
 
 __all__ = [
     "Latent",
@@ -15,6 +21,8 @@ __all__ = [
     "AnalyticField",
     "InterpolatedField",
     "GaussianField",
+    "BumpField",
+    "GaussianBumps",
     "Sum",
     "Product",
     "Multichannel",

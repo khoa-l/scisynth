@@ -13,7 +13,7 @@ from ..core._grid import as_shape, check_cells
 from ..core._numbers import as_int
 from ..core._types import FloatArray
 from ..core.domain import Domain
-from ..core.params import Param
+from ..core.params import Param, resolve
 from ..core.rng import SeedLike, spawn_rngs
 from .base import FieldOps, Kind, LatentGenerator
 
@@ -247,4 +247,148 @@ class GaussianField(LatentGenerator):
             self.domain,
             order=as_int(params["order"], "order"),
             mode="grid-wrap",  # the FFT construction is periodic
+        )
+
+
+def _draw_each(param: Param, rng: np.random.Generator, n: int) -> FloatArray:
+    """Resolve ``param`` once per item, so a distribution gives ``n`` separate draws."""
+    return np.array([resolve(param, rng) for _ in range(n)], dtype=np.float64)
+
+
+@dataclass
+class BumpField(FieldOps):
+    """A sum of round Gaussian bumps.
+
+    Parameters
+    ----------
+    centers : ndarray of shape (n, ndim)
+        Where each bump peaks.
+    widths : ndarray of shape (n,)
+        Standard deviation of each bump, in domain units. Must be positive.
+    heights : ndarray of shape (n,)
+        Peak value of each bump.
+    domain : Domain
+        The space the field lives in.
+
+    Raises
+    ------
+    ValueError
+        If ``widths`` or ``heights`` does not have one entry per center, or a width
+        is not positive.
+
+    Notes
+    -----
+    The field has one channel. It is exact everywhere, with no grid, and the bumps
+    do not wrap around the domain.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scisynth.core import Domain
+    >>> from scisynth.latent import BumpField
+    >>> domain = Domain.from_extents([(0, 10), (0, 10)])
+    >>> bumps = BumpField([[2, 3], [7, 5]], [0.5, 1.0], [1.0, 2.0], domain)
+    >>> bumps.evaluate(np.array([[7.0, 5.0]])).round(3)
+    array([[2.]])
+    """
+
+    centers: FloatArray
+    widths: FloatArray
+    heights: FloatArray
+    domain: Domain
+    kind: ClassVar[Kind] = "field"
+
+    def __post_init__(self) -> None:
+        self.centers = np.asarray(self.centers, dtype=np.float64).reshape(
+            -1, self.domain.ndim
+        )
+        self.widths = np.asarray(self.widths, dtype=np.float64)
+        self.heights = np.asarray(self.heights, dtype=np.float64)
+        n = len(self.centers)
+        if self.widths.shape != (n,) or self.heights.shape != (n,):
+            raise ValueError(
+                f"widths and heights must have shape ({n},), got "
+                f"{self.widths.shape} and {self.heights.shape}"
+            )
+        if np.any(self.widths <= 0):
+            raise ValueError(f"widths must be > 0, got {self.widths}")
+
+    def evaluate(self, points: FloatArray) -> FloatArray:
+        """Evaluate at ``points``.
+
+        Parameters
+        ----------
+        points : ndarray of shape (n, ndim)
+            Query points, one row per point.
+
+        Returns
+        -------
+        ndarray of shape (n, 1)
+            The sum of the bumps.
+        """
+        d2 = ((points[:, None, :] - self.centers) ** 2).sum(axis=-1)
+        out: FloatArray = np.exp(-0.5 * d2 / self.widths**2) @ self.heights
+        return out[:, None]
+
+
+@dataclass
+class GaussianBumps(LatentGenerator):
+    """Gaussian bumps scattered uniformly over the domain.
+
+    Parameters
+    ----------
+    domain : Domain
+        The space the field lives in.
+    count : int or distribution, default=10
+        Number of bumps, drawn once per realization.
+    width : float or distribution, default=0.1
+        Standard deviation of a bump, in domain units. A distribution gives a
+        separate draw for each bump.
+    height : float or distribution, default=1.0
+        Peak value of a bump. A distribution gives a separate draw for each bump.
+
+    Examples
+    --------
+    >>> from scipy import stats
+    >>> from scisynth.core import Domain
+    >>> from scisynth.latent import GaussianBumps
+    >>> domain = Domain.from_extents([(0, 10), (0, 10)])
+    >>> bumps = GaussianBumps(domain, count=5, width=stats.uniform(0.2, 0.5))
+    >>> bumps.realize(seed=0).centers.shape
+    (5, 2)
+    """
+
+    domain: Domain
+    count: Param = 10
+    width: Param = 0.1
+    height: Param = 1.0
+
+    def realize(self, seed: SeedLike = None) -> BumpField:
+        """Draw one realization.
+
+        Parameters
+        ----------
+        seed : int, SeedSequence or None, default=None
+            Seed for the random streams; None draws fresh OS entropy.
+
+        Returns
+        -------
+        BumpField
+            The bumps, with their centers, widths and heights.
+
+        Raises
+        ------
+        ValueError
+            If ``count`` is negative or a width is not positive.
+        """
+        param_rng, place_rng = spawn_rngs(seed, 2)
+        n = as_int(resolve(self.count, param_rng), "count")
+        if n < 0:
+            raise ValueError(f"count must be >= 0, got {n}")
+        lo, hi = np.array(self.domain.extents).T
+        return BumpField(
+            place_rng.uniform(lo, hi, size=(n, self.domain.ndim)),
+            _draw_each(self.width, param_rng, n),
+            _draw_each(self.height, param_rng, n),
+            self.domain,
         )

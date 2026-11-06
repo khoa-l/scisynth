@@ -5,7 +5,9 @@ from importlib.metadata import PackageNotFoundError, version
 from .core import Axis, Domain, Observation, resolve, spawn_rngs
 from .latent import (
     AnalyticField,
+    BumpField,
     FieldLatent,
+    GaussianBumps,
     GaussianField,
     InterpolatedField,
     Latent,
@@ -42,6 +44,7 @@ except PackageNotFoundError:  # pragma: no cover
 __all__ = [
     "AnalyticField",
     "Axis",
+    "BumpField",
     "Clip",
     "CoordinateShift",
     "Domain",
@@ -49,6 +52,7 @@ __all__ = [
     "Drift",
     "FieldLatent",
     "Gain",
+    "GaussianBumps",
     "GaussianField",
     "GaussianNoise",
     "GridSampler",
