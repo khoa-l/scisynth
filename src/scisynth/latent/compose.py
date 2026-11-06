@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import reduce
 from typing import ClassVar
 
@@ -82,6 +83,68 @@ class Product(_FieldComposite):
     def evaluate(self, points: FloatArray) -> FloatArray:
         out: FloatArray = reduce(np.multiply, (t.evaluate(points) for t in self.terms))
         return out
+
+
+@dataclass
+class Threshold(FieldOps):
+    """1 where a field is above ``level``, 0 elsewhere.
+
+    Parameters
+    ----------
+    field : FieldLatent
+        A realized field. A multi-channel field is thresholded channel by channel.
+    level : float, default=0.0
+        The cut. Values equal to ``level`` give 0.
+
+    Raises
+    ------
+    TypeError
+        If ``field`` is not a realized field.
+
+    Notes
+    -----
+    A :class:`~scisynth.latent.fields.GaussianField` with mean 0, cut at 0, covers
+    about half of the domain; a higher ``level`` gives fewer, smaller blobs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scisynth.core import Domain
+    >>> from scisynth.latent import AnalyticField, Threshold
+    >>> domain = Domain.from_extents([(0, 10)])
+    >>> mask = Threshold(AnalyticField(lambda x: x, domain), level=5.0)
+    >>> mask.evaluate(np.array([[2.0], [8.0]]))
+    array([[0.],
+           [1.]])
+    """
+
+    field: FieldLatent
+    level: float = 0.0
+    kind: ClassVar[Kind] = "field"
+
+    def __post_init__(self) -> None:
+        _check_fields(self, (self.field,))
+
+    @property
+    def domain(self) -> Domain:
+        """Domain of ``field``."""
+        return self.field.domain
+
+    def evaluate(self, points: FloatArray) -> FloatArray:
+        """Evaluate at ``points``.
+
+        Parameters
+        ----------
+        points : ndarray of shape (n, ndim)
+            Query points, one row per point.
+
+        Returns
+        -------
+        ndarray of shape (n, d)
+            1.0 where ``field`` is above ``level``, 0.0 elsewhere, with the same
+            channels as ``field``.
+        """
+        return (self.field.evaluate(points) > self.level).astype(np.float64)
 
 
 class Warp(Unimplemented, LatentPlotMixin):

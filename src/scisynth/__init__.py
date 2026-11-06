@@ -16,6 +16,7 @@ from .latent import (
     Product,
     RegionField,
     Sum,
+    Threshold,
     VoronoiRegions,
 )
 from .observer import Observer, StageDiff, StageList, Trace
@@ -80,6 +81,7 @@ __all__ = [
     "StageDiff",
     "StageList",
     "Sum",
+    "Threshold",
     "Trace",
     "ValueOffset",
     "VoronoiRegions",

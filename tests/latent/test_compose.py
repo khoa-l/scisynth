@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from scisynth import AnalyticField, Domain, GaussianField, Product, Sum
+from scisynth import AnalyticField, Domain, GaussianField, Product, Sum, Threshold
 from scisynth.latent.compose import Multichannel
 
 
@@ -85,3 +85,27 @@ def test_multichannel_validation(field: AnalyticField) -> None:
         Multichannel(field, field, corr=[[1.0, 0.5], [0.2, 1.0]])
     with pytest.raises(ValueError, match="positive definite"):
         Multichannel(field, field, corr=[[1.0, 1.5], [1.5, 1.0]])
+
+
+def test_threshold_is_one_strictly_above_the_level(domain: Domain) -> None:
+    mask = Threshold(AnalyticField(lambda x, y: x, domain), level=0.5)
+    pts = np.array([[0.2, 0.0], [0.5, 0.0], [0.8, 0.0]])
+    assert np.array_equal(mask.evaluate(pts), [[0.0], [0.0], [1.0]])
+    assert mask.kind == "field" and mask.domain == domain
+
+
+def test_threshold_works_per_channel_and_composes(domain: Domain) -> None:
+    a = AnalyticField(lambda x, y: x, domain)
+    b = AnalyticField(lambda x, y: y, domain)
+    pts = np.array([[0.2, 1.5], [0.8, 0.5]])
+    mask = Threshold(Multichannel(a, b), level=0.6)
+    assert np.array_equal(mask.evaluate(pts), [[0.0, 1.0], [1.0, 0.0]])
+    masked = Threshold(a, level=0.6) * b
+    assert np.allclose(masked.evaluate(pts), [[0.0], [0.5]])
+
+
+def test_threshold_needs_a_realized_field(catalog: object, domain: Domain) -> None:
+    with pytest.raises(TypeError, match="kind 'field'"):
+        Threshold(catalog)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="realize generators first"):
+        Threshold(GaussianField(domain))  # type: ignore[arg-type]
