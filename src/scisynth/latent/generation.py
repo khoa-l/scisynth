@@ -109,7 +109,7 @@ def _(domain, grid, noises, pnts, sounds):
 def _(domain, grid, noises, pnts, sounds):
     ufoBase = ellipse_mask(domain, (200,200),(50,20), (30,8))
     ufoTop = ellipse_mask(domain, (200,200), (50,30), (20,15))
-    ufoDots = [ellipse_mask(domain, (50,50), (x,y), (1.5,1.5))
+    ufoDots = [ellipse_mask(domain, (200,200), (x,y), (1.5,1.5))
     for (x,y) in [(25,20),(30,18),(35,16),(40,15),(45,15),(50,15),(55,15),(60,15),(65,16),(70,18),(75,20)]]
     ufoWindshield = ellipse_mask(domain, (200,200),(50,30),(17,12))
     ufoWindframe = ellipse_mask(domain, (100,100),(50,28),(17,5))
@@ -120,7 +120,9 @@ def _(domain, grid, noises, pnts, sounds):
     ufoIsh = flatten_masks([ufoBackground, ufoDotMask], add=False)
     ufoMask = flatten_masks([ufoIsh,ufoWindow], add=False)
 
-    ufoLatent = apply_mask(ufoMask, noises[3], sounds[2])
+    ufoLightsLatent = apply_mask(ufoDotMask, noises[3], sounds[1])
+    ufoWindshieldLatent = apply_mask(ufoWindow, sounds[0], ufoLightsLatent)
+    ufoLatent = apply_mask(ufoMask, sounds[3], ufoWindshieldLatent)
 
     mo.vstack([
         mo.ui.plotly(grid.plot(ufoMask)),

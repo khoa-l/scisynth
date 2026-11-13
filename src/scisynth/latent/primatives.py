@@ -133,6 +133,8 @@ def rectangle_mask(
 # Apparently ray-casting can be used to determine membership/internality
 # Brush up on ray-casting logic, check efficiency for large vertex lists
 
+#TODO: redefine 'flatten_masks' in terms of sum and product
+
 #TODO: Polygon can use to partition (line separation)
 
 #TODO: Post-Processing:
